@@ -1,0 +1,20 @@
+# Relevant rows copied from the installed DSH 0.1.1-rc.2 base/headless composition.
+- insert:
+    - id: session-query-sqlite
+      name: '@deepseek-ai/dsh-session-query-sqlite'
+      config:
+        path: ':memory:'
+        openAt: never
+
+    - id: compaction-basic
+      name: '@deepseek-ai/dsh-compaction-basic'
+
+    - id: command-compact
+      name: '@deepseek-ai/dsh-command-compact'
+
+    - id: tool-result-pruner
+      name: '@deepseek-ai/dsh-compaction-tool-result-pruner'
+      config:
+        thresholdChars: 8192
+        headChars: 4096
+        tailChars: 1024

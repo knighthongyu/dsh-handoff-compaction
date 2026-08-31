@@ -1,0 +1,32 @@
+# Dependencies and package-manager state
+node_modules/
+.pnpm-store/
+
+# Local orchestration and operating-system state
+.pda/
+.superpowers/
+docs/superpowers/
+.DS_Store
+
+# Test, log, and temporary pack output
+coverage/
+*.log
+logs/
+*.tgz
+.pack-output/
+.tmp/
+tmp/
+
+# Local environment files; examples are safe to publish
+.env*
+!.env.example
+!.env.*.example
+
+# Local DSH profile, session, and database state
+.dsh/
+.dsh-profile/
+.dsh-sessions/
+session-query.sqlite*
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
