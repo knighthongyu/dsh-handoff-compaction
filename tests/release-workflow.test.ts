@@ -129,7 +129,7 @@ describe('release workflow contract', () => {
     }
     const audit = await runReleasePackageAudit()
 
-    expect(audit.filename).toMatch(/^dsh-handoff-compaction-0\.1\.0\.tgz$/)
+    expect(audit.filename).toMatch(/^dsh-handoff-compaction-0\.1\.1\.tgz$/)
     expect(audit.sha256).toMatch(/^[a-f0-9]{64}$/)
     expect(audit.files).toEqual(expect.arrayContaining([
       'package.json',

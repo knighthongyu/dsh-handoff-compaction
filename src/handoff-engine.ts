@@ -1,5 +1,6 @@
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import { BasicCompactionEngine } from '@deepseek-ai/dsh-compaction-basic'
+import { isDeepStrictEqual } from 'node:util'
 import {
   BlockAssembler,
   LlmError,
@@ -140,6 +141,23 @@ export class HandoffCompactionEngine extends BasicCompactionEngine {
       throw error
     }
 
+    const fullMessages = agent.session.deriveMessages()
+    const sourcePrefix = fullMessages.slice(0, sourceMessageCount)
+    if (
+      fullMessages.length < sourceMessageCount
+      || !isDeepStrictEqual(sourcePrefix, [...input.messages])
+    ) {
+      const error = new HandoffValidationError(
+        'HANDOFF_SOURCE_MISMATCH',
+        'handoff rejected: the selected replay source is not the current session surface prefix',
+      )
+      this.ctx.logger.warn(
+        `handoff validation failed: code=${error.code} sourceMessages=${sourceMessageCount} surfaceMessages=${fullMessages.length} provider=${target.provider} model=${target.model} inputTokens=unknown outputTokens=unknown cacheReadTokens=unknown`,
+      )
+      throw error
+    }
+    const retainedMessageCount = fullMessages.length - sourceMessageCount
+
     const hasHumanUserMessage = input.messages.some((message) => (
       message.role === 'user' && message.source.kind === 'user'
     ))
@@ -147,10 +165,13 @@ export class HandoffCompactionEngine extends BasicCompactionEngine {
     let recovery = recoveryState.has(agent.session)
 
     for (let attempt = 0; attempt < MAX_HANDOFF_ATTEMPTS; attempt += 1) {
-      const instruction = handoffInstruction(sourceMessageCount, recovery)
+      const instruction = handoffInstruction(sourceMessageCount, {
+        retainedMessageCount,
+        recovery,
+      })
       const assembler = new BlockAssembler()
       const messages = [
-        ...input.messages,
+        ...fullMessages,
         createUserMessage({
           content: [{ type: 'text', text: instruction }],
           source: { kind: 'plugin', plugin: 'dsh-handoff-compaction' },

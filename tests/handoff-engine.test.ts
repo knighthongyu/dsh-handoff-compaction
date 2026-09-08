@@ -53,6 +53,8 @@ const allNoneHandoff = HANDOFF_HEADINGS.map((heading, index) => (
 
 class ExposedEngine extends HandoffCompactionEngine {
   runSummary(input: HandoffSummarizationInput, agent: Agent, signal?: AbortSignal) {
+    const session = agent.session as Agent['session'] & { deriveMessages?: () => unknown[] }
+    session.deriveMessages ??= () => [...input.messages]
     return this.summarize(input, agent, signal)
   }
 }
@@ -99,11 +101,16 @@ function sourceMessage(text = 'original context') {
   })
 }
 
-function fakeAgent(latest?: { provider: string; model: string }, options: Record<string, unknown> = {}) {
+function fakeAgent(
+  latest?: { provider: string; model: string },
+  options: Record<string, unknown> = {},
+  surfaceMessages?: readonly ReturnType<typeof sourceMessage>[],
+) {
   return {
     session: {
       id: 'session-123',
       requestHeader: () => latest === undefined ? undefined : { config: latest },
+      ...(surfaceMessages === undefined ? {} : { deriveMessages: () => [...surfaceMessages] }),
     },
     options,
   } as never
@@ -171,6 +178,47 @@ describe('HandoffCompactionEngine', () => {
       maxTokens: 4096,
       usage,
     })
+  })
+
+  it('sends the complete current surface while limiting the summary source to the selected prefix', async () => {
+    const calls: GenerateOptions[] = []
+    const stream = async function* (options: GenerateOptions) {
+      calls.push(options)
+      yield { type: 'block-end', index: 0, block: { type: 'text', text: validHandoff } } as const
+      yield { type: 'finish', reason: { kind: 'stop' } } as const
+    }
+    const engine = makeEngine(stream)
+    const selected = sourceMessage('SELECTED-OLD-PREFIX')
+    const retained = sourceMessage('RETAINED-RECENT-TAIL')
+
+    await engine.runSummary(
+      { messages: [selected] },
+      fakeAgent({ provider: 'p', model: 'm' }, {}, [selected, retained]),
+    )
+
+    expect(calls).toHaveLength(1)
+    expect(calls[0]?.messages.slice(0, -1)).toEqual([selected, retained])
+    expect(calls[0]?.messages.at(-1)?.content[0]).toMatchObject({
+      type: 'text',
+      text: handoffInstruction(1, { retainedMessageCount: 1, recovery: false }),
+    })
+  })
+
+  it('fails before the provider call when the selected source is not the current surface prefix', async () => {
+    let calls = 0
+    const engine = makeEngine(async function* () {
+      calls += 1
+      yield { type: 'block-end', index: 0, block: { type: 'text', text: validHandoff } } as const
+      yield { type: 'finish', reason: { kind: 'stop' } } as const
+    })
+    const selected = sourceMessage('SELECTED-OLD-PREFIX')
+    const different = sourceMessage('DIFFERENT-CURRENT-PREFIX')
+
+    await expect(engine.runSummary(
+      { messages: [selected] },
+      fakeAgent({ provider: 'p', model: 'm' }, {}, [different]),
+    )).rejects.toMatchObject({ code: 'HANDOFF_SOURCE_MISMATCH' })
+    expect(calls).toBe(0)
   })
 
   it('falls back from latest durable route to complete Agent options', async () => {
@@ -252,8 +300,10 @@ describe('HandoffCompactionEngine', () => {
     }
     const warnings: string[] = []
     const engine = makeEngine(stream, {}, warnings)
-    const agent = fakeAgent({ provider: 'p', model: 'm' })
-    const input = { messages: [sourceMessage('SECRET_SOURCE_TEXT')] }
+    const selected = sourceMessage('SECRET_SOURCE_TEXT')
+    const retained = sourceMessage('RETAINED_RECOVERY_TAIL')
+    const agent = fakeAgent({ provider: 'p', model: 'm' }, {}, [selected, retained])
+    const input = { messages: [selected] }
 
     await expect(engine.runSummary(input, agent)).resolves.toMatchObject({
       summary: [{ type: 'text', text: validHandoff }],
@@ -261,10 +311,21 @@ describe('HandoffCompactionEngine', () => {
     await expect(engine.runSummary(input, agent)).resolves.toBeDefined()
 
     expect(calls).toHaveLength(3)
+    expect(calls[0]?.messages.slice(0, -1)).toEqual([selected, retained])
+    expect(calls[1]?.messages.slice(0, -1)).toEqual([selected, retained])
     const instructions = calls.map((call) => call.messages.at(-1)?.content[0])
-    expect(instructions[0]).toMatchObject({ type: 'text', text: handoffInstruction(1, false) })
-    expect(instructions[1]).toMatchObject({ type: 'text', text: handoffInstruction(1, true) })
-    expect(instructions[2]).toMatchObject({ type: 'text', text: handoffInstruction(1, false) })
+    expect(instructions[0]).toMatchObject({
+      type: 'text',
+      text: handoffInstruction(1, { retainedMessageCount: 1, recovery: false }),
+    })
+    expect(instructions[1]).toMatchObject({
+      type: 'text',
+      text: handoffInstruction(1, { retainedMessageCount: 1, recovery: true }),
+    })
+    expect(instructions[2]).toMatchObject({
+      type: 'text',
+      text: handoffInstruction(1, { retainedMessageCount: 1, recovery: false }),
+    })
     expect(warnings).toHaveLength(1)
     expect(warnings[0]).toContain('code=HANDOFF_ALL_SECTIONS_EMPTY')
     expect(warnings[0]).toContain('sourceMessages=1')

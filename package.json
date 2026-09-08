@@ -1,6 +1,6 @@
 {
   "name": "dsh-handoff-compaction",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Structured handoff compaction and official session-history retrieval for DeepSeek Harness",
   "type": "module",
   "packageManager": "pnpm@11.22.0",

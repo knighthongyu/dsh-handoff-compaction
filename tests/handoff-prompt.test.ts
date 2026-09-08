@@ -15,13 +15,25 @@ describe('handoff prompt contract', () => {
     expect(handoffInstruction()).toBe(HANDOFF_INSTRUCTION)
   })
 
-  it('identifies the preceding messages as the complete source', () => {
+  it('identifies the selected leading messages as the complete source', () => {
     const instruction = handoffInstruction(87, false)
 
-    expect(instruction).toContain('messages ABOVE are the complete replayed source')
+    expect(instruction).toContain('messages ABOVE are the complete current DSH context')
     expect(instruction).toContain('No separate replay document or attachment will be provided')
-    expect(instruction).toContain('Source manifest: 87 replayed messages are present')
+    expect(instruction).toContain('first 87 leading messages')
     expect(instruction).toContain('must never produce an all-(none) handoff')
+  })
+
+  it('limits the handoff source to the selected prefix while carrying the retained tail', () => {
+    const instruction = handoffInstruction(87, {
+      retainedMessageCount: 12,
+      recovery: false,
+    })
+
+    expect(instruction).toContain('87 leading messages')
+    expect(instruction).toContain('12 trailing messages')
+    expect(instruction).toContain('retained verbatim')
+    expect(instruction).toContain('do not summarize')
   })
 
   it('adds a stronger warning only for a recovery attempt', () => {
@@ -42,10 +54,8 @@ describe('handoff prompt contract', () => {
     expect(HANDOFF_INSTRUCTION).toContain('never invent session ids or event seq values')
     expect(HANDOFF_INSTRUCTION).toContain('literal search phrases')
     expect(HANDOFF_INSTRUCTION).toContain('Write "(none)"')
-    expect(HANDOFF_INSTRUCTION).toContain('conversation messages above support it')
-    expect(HANDOFF_INSTRUCTION).not.toContain('replayed source supports it')
-    expect(HANDOFF_INSTRUCTION).toContain('visible in the conversation messages above')
-    expect(HANDOFF_INSTRUCTION).not.toContain('visible in the replayed source')
+    expect(HANDOFF_INSTRUCTION).toContain('selected leading source messages above support it')
+    expect(HANDOFF_INSTRUCTION).toContain('visible in the selected leading source messages above')
   })
 
   it('does not retain the stock summary taxonomy', () => {

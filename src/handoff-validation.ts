@@ -2,6 +2,7 @@ import { HANDOFF_HEADINGS } from './handoff-prompt.js'
 
 export type HandoffValidationCode =
   | 'HANDOFF_SOURCE_EMPTY'
+  | 'HANDOFF_SOURCE_MISMATCH'
   | 'HANDOFF_TOOL_CALL_OUTPUT'
   | 'HANDOFF_STRUCTURE_INVALID'
   | 'HANDOFF_ALL_SECTIONS_EMPTY'

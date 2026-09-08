@@ -1,4 +1,4 @@
-export type HandoffValidationCode = 'HANDOFF_SOURCE_EMPTY' | 'HANDOFF_TOOL_CALL_OUTPUT' | 'HANDOFF_STRUCTURE_INVALID' | 'HANDOFF_ALL_SECTIONS_EMPTY' | 'HANDOFF_WORKING_STATE_EMPTY';
+export type HandoffValidationCode = 'HANDOFF_SOURCE_EMPTY' | 'HANDOFF_SOURCE_MISMATCH' | 'HANDOFF_TOOL_CALL_OUTPUT' | 'HANDOFF_STRUCTURE_INVALID' | 'HANDOFF_ALL_SECTIONS_EMPTY' | 'HANDOFF_WORKING_STATE_EMPTY';
 export interface HandoffSourceFacts {
     readonly sourceMessageCount: number;
     readonly hasHumanUserMessage: boolean;

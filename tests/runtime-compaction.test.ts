@@ -13,7 +13,7 @@ import LlmRuntime, {
 import SessionStore, { SessionId } from '@deepseek-ai/dsh-session'
 
 import { HandoffCompactionEngine } from '../src/handoff-engine.js'
-import { HANDOFF_HEADINGS } from '../src/handoff-prompt.js'
+import { HANDOFF_HEADINGS, handoffInstruction } from '../src/handoff-prompt.js'
 import { dshRequire } from './fixtures/sessions/runtime-helpers.js'
 
 const contexts: Context[] = []
@@ -181,8 +181,15 @@ describe('composed compaction runtime', () => {
     )
 
     expect(adapter.calls).toHaveLength(1)
+    expect(JSON.stringify(adapter.calls[0]?.messages.slice(0, -1))).toContain(
+      'RECENT-TAIL-MUST-STAY',
+    )
     expect(adapter.calls[0]?.messages.at(-1)?.source).toMatchObject({
       kind: 'plugin', plugin: 'dsh-handoff-compaction',
+    })
+    expect(adapter.calls[0]?.messages.at(-1)?.content[0]).toMatchObject({
+      type: 'text',
+      text: handoffInstruction(3, { retainedMessageCount: 2, recovery: false }),
     })
     const summaryEvent = session.events[result.summarySeq] as any
     expect(summaryEvent.type).toBe('compaction/summary')
