@@ -8,6 +8,7 @@ import {
   createUserMessage,
   type ContentBlock,
   type FinishReason,
+  type LlmCallConfig,
   type Message,
   type TokenUsage,
   type ToolSchema,
@@ -46,6 +47,14 @@ interface Route {
   readonly model: string
 }
 
+type CacheAlignment = 'same-route' | 'different-route' | 'no-durable-header'
+
+interface ReusableRequestControls {
+  readonly reasoningEffort?: NonNullable<LlmCallConfig['reasoningEffort']>
+  readonly temperature?: number
+  readonly stop?: string[]
+}
+
 const MAX_HANDOFF_ATTEMPTS = 2
 
 function completeAgentRoute(agent: Agent): Route | undefined {
@@ -56,12 +65,50 @@ function completeAgentRoute(agent: Agent): Route | undefined {
   return { provider, model }
 }
 
-function latestDurableRoute(agent: Agent): Route | undefined {
+function latestDurableCallConfig(agent: Agent): LlmCallConfig | undefined {
   const config = agent.session.requestHeader()?.config
   if (config === undefined || config.provider.length === 0 || config.model.length === 0) {
     return undefined
   }
-  return { provider: config.provider, model: config.model }
+  return config
+}
+
+function latestDurableRoute(agent: Agent): Route | undefined {
+  const config = latestDurableCallConfig(agent)
+  return config === undefined ? undefined : { provider: config.provider, model: config.model }
+}
+
+function routeEquals(left: Route, right: Route): boolean {
+  return left.provider === right.provider && left.model === right.model
+}
+
+function reusableRequestControls(
+  durable: LlmCallConfig | undefined,
+  target: Route,
+): { alignment: CacheAlignment, controls: ReusableRequestControls } {
+  if (durable === undefined) {
+    return { alignment: 'no-durable-header', controls: {} }
+  }
+  if (!routeEquals(durable, target)) {
+    return { alignment: 'different-route', controls: {} }
+  }
+  return {
+    alignment: 'same-route',
+    controls: {
+      ...(durable.reasoningEffort === undefined
+        ? {}
+        : { reasoningEffort: durable.reasoningEffort }),
+      ...(durable.temperature === undefined ? {} : { temperature: durable.temperature }),
+      ...(durable.stop === undefined ? {} : { stop: [...durable.stop] }),
+    },
+  }
+}
+
+function requestControlDiagnostics(
+  alignment: CacheAlignment,
+  controls: ReusableRequestControls,
+): string {
+  return `cacheAlignment=${alignment} reasoningEffort=${controls.reasoningEffort ?? 'provider-default'} temperature=${controls.temperature ?? 'provider-default'} stopCount=${controls.stop?.length ?? 0}`
 }
 
 function finishError(finish: FinishReason): (Error & { code?: string }) | undefined {
@@ -114,7 +161,10 @@ export class HandoffCompactionEngine extends BasicCompactionEngine {
     signal?: AbortSignal,
   ): Promise<HandoffSummaryResult> {
     const config = this.summaryCallConfig(agent)
-    const latest = latestDurableRoute(agent)
+    const latestCallConfig = latestDurableCallConfig(agent)
+    const latest = latestCallConfig === undefined
+      ? undefined
+      : { provider: latestCallConfig.provider, model: latestCallConfig.model }
     const agentRoute = completeAgentRoute(agent)
     const configured = config.summarizationProvider.length === 0
       ? undefined
@@ -128,6 +178,11 @@ export class HandoffCompactionEngine extends BasicCompactionEngine {
         'no provider/model available for summarization: set both BasicCompactionConfig summarization fields, route one request, or set both AgentOptions fields',
       )
     }
+    const { alignment: cacheAlignment, controls: requestControls } = reusableRequestControls(
+      latestCallConfig,
+      target,
+    )
+    const controlDiagnostics = requestControlDiagnostics(cacheAlignment, requestControls)
 
     const sourceMessageCount = input.messages.length
     if (sourceMessageCount === 0) {
@@ -136,7 +191,7 @@ export class HandoffCompactionEngine extends BasicCompactionEngine {
         'handoff rejected: the replay source contains zero messages',
       )
       this.ctx.logger.warn(
-        `handoff validation failed: code=${error.code} sourceMessages=0 provider=${target.provider} model=${target.model} inputTokens=unknown outputTokens=unknown cacheReadTokens=unknown`,
+        `handoff validation failed: code=${error.code} sourceMessages=0 provider=${target.provider} model=${target.model} ${controlDiagnostics} inputTokens=unknown outputTokens=unknown cacheReadTokens=unknown attempt=preflight`,
       )
       throw error
     }
@@ -152,7 +207,7 @@ export class HandoffCompactionEngine extends BasicCompactionEngine {
         'handoff rejected: the selected replay source is not the current session surface prefix',
       )
       this.ctx.logger.warn(
-        `handoff validation failed: code=${error.code} sourceMessages=${sourceMessageCount} surfaceMessages=${fullMessages.length} provider=${target.provider} model=${target.model} inputTokens=unknown outputTokens=unknown cacheReadTokens=unknown`,
+        `handoff validation failed: code=${error.code} sourceMessages=${sourceMessageCount} surfaceMessages=${fullMessages.length} provider=${target.provider} model=${target.model} ${controlDiagnostics} inputTokens=unknown outputTokens=unknown cacheReadTokens=unknown attempt=preflight`,
       )
       throw error
     }
@@ -180,6 +235,7 @@ export class HandoffCompactionEngine extends BasicCompactionEngine {
       const options = {
         provider: target.provider,
         model: target.model,
+        ...requestControls,
         messages,
         ...(input.system === undefined ? {} : { system: input.system }),
         ...(input.tools === undefined ? {} : { tools: [...input.tools] }),
@@ -226,7 +282,7 @@ export class HandoffCompactionEngine extends BasicCompactionEngine {
         recoveryState.add(agent.session)
         const usage = assembler.usage
         this.ctx.logger.warn(
-          `handoff validation failed: code=${error.code} sourceMessages=${sourceMessageCount} provider=${options.provider} model=${options.model} inputTokens=${usage?.inputTokens ?? 'unknown'} outputTokens=${usage?.outputTokens ?? 'unknown'} cacheReadTokens=${usage?.cacheReadTokens ?? 'unknown'} attempt=${attempt + 1}/${MAX_HANDOFF_ATTEMPTS}`,
+          `handoff validation failed: code=${error.code} sourceMessages=${sourceMessageCount} provider=${options.provider} model=${options.model} ${controlDiagnostics} inputTokens=${usage?.inputTokens ?? 'unknown'} outputTokens=${usage?.outputTokens ?? 'unknown'} cacheReadTokens=${usage?.cacheReadTokens ?? 'unknown'} attempt=${attempt + 1}/${MAX_HANDOFF_ATTEMPTS}`,
         )
         if (attempt === 0) {
           recovery = true
@@ -235,6 +291,10 @@ export class HandoffCompactionEngine extends BasicCompactionEngine {
         throw error
       }
       recoveryState.delete(agent.session)
+      const usage = assembler.usage
+      this.ctx.logger.info(
+        `handoff summary completed: sourceMessages=${sourceMessageCount} surfaceMessages=${fullMessages.length} provider=${options.provider} model=${options.model} ${controlDiagnostics} inputTokens=${usage?.inputTokens ?? 'unknown'} outputTokens=${usage?.outputTokens ?? 'unknown'} cacheReadTokens=${usage?.cacheReadTokens ?? 'unknown'} attempt=${attempt + 1}/${MAX_HANDOFF_ATTEMPTS}`,
+      )
 
       return {
         summary,

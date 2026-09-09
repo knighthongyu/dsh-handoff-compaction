@@ -4,7 +4,7 @@
 
 `dsh-handoff-compaction` replaces DSH's basic context summary with a structured `# Context Handoff` while preserving DSH's native compaction transaction, `/compact` command, retries, recent raw tail, and append-only session log. It also mounts the official persistent history-retrieval package.
 
-Compatibility: DSH `0.1.1-rc.2`; `@deepseek-ai/dsh-tool-session-query` `0.1.0-rc.8`; Node.js `^22.19.0 || >=24.0.0`.
+Compatibility: DSH `0.1.1-rc.2` and `0.1.2-rc.1`; `@deepseek-ai/dsh-tool-session-query` `0.1.0-rc.8`; Node.js `^22.19.0 || >=24.0.0`.
 
 ## Install
 
@@ -51,7 +51,7 @@ Every supported package source uses the same `dsh plugin --profile <profile> add
 dsh plugin --profile web add dsh-handoff-compaction
 dsh plugin --profile web add github:knighthongyu/dsh-handoff-compaction
 dsh plugin --profile web add ./dsh-handoff-compaction
-dsh plugin --profile web add ./dsh-handoff-compaction-0.1.1.tgz
+dsh plugin --profile web add ./dsh-handoff-compaction-0.1.2.tgz
 ```
 
 ## History retrieval
@@ -85,7 +85,9 @@ Optional legacy cleanup applies only if an earlier release created the `handoff-
 
 ## Behavior at failure boundaries
 
-Summary aborts, stream errors, empty replay input, malformed handoff structure, all-`(none)` handoffs, missing working state, image output, and max-token stops fail closed: no invalid replacement summary is committed. When the provider returns invalid Markdown or tool calls, the plugin makes one immediate recovery attempt inside the same compaction transaction with a stronger instruction. Both calls replay the same system prompt, tools, and source-message prefix so the provider can reuse the long prefix cache; only the short final instruction changes. If recovery also fails, the selected surface remains current. Validation diagnostics contain only the error code, source-message count, route, attempt number, and token usage—not conversation or summary text.
+Summary aborts, stream errors, empty replay input, malformed handoff structure, all-`(none)` handoffs, missing working state, image output, and max-token stops fail closed: no invalid replacement summary is committed. When the provider returns invalid Markdown or tool calls, the plugin makes one immediate recovery attempt inside the same compaction transaction with a stronger instruction. Both calls replay the same system prompt, tools, and source-message prefix; on the same provider/model route they also inherit the durable `reasoningEffort`, `temperature`, and `stop` controls so the rendered prompt prefix remains cache-aligned. The summary-specific `maxTokens` cap remains independent, and only the short final recovery instruction changes between attempts. A configured different summary route cannot reuse the conversation route's provider cache and does not inherit its route-specific controls.
+
+Every completed summary logs a content-free diagnostic containing `cacheAlignment`, route, request-control presence, attempt number, and reported token usage including `cacheReadTokens` when the provider exposes it. Validation diagnostics contain the same safe metadata plus the error code; neither log includes conversation or summary text.
 
 After a successful handoff, the recent raw tail remains available, while older raw events stay retrievable from the append-only history. Disabling `tool-result-pruner` is required so tool results are not separately and irreversibly stripped from that history. Installing this fix does not automatically repair a previously committed all-`(none)` checkpoint; recover such a session explicitly from its shadowed events.
 

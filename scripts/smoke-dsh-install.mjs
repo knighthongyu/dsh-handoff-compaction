@@ -11,7 +11,7 @@ const WEB_READY_TIMEOUT_MS = 45_000
 const TERMINATION_GRACE_MS = 5_000
 const OUTPUT_LIMIT = 80_000
 
-/** @typedef {{ profile: string, home: string, install: boolean, bundle: boolean, composition: boolean, boot: boolean, removal: boolean, postRemoveBoot: boolean }} SmokeProfile */
+/** @typedef {{ profile: string, home: string, install: boolean, bundle: boolean, runtimePeers: boolean, composition: boolean, boot: boolean, removal: boolean, postRemoveBoot: boolean }} SmokeProfile */
 /** @typedef {{ tempRoot: string, tarball: string, homes: string[], profiles: SmokeProfile[] }} SmokeReport */
 
 class SmokeStageError extends Error {
@@ -130,6 +130,50 @@ function bundleEntries(manifest) {
 function assertInstalledManifest(manifest, profile) {
   assert(typeof manifest?.dependencies?.[PACKAGE_NAME] === 'string', profile, 'bundle', `profile manifest has no ${PACKAGE_NAME} dependency`)
   assert(bundleEntries(manifest).length === 1, profile, 'bundle', `profile manifest must contain exactly one ${PACKAGE_NAME} Bundle entry`)
+}
+
+/** Fail when a standard install leaves a private Cordis/DSH runtime under the plugin. */
+export function assertNoPrivateRuntimeEntries(entries, profile) {
+  const privateRuntime = entries.filter((entry) => (
+    /^@deepseek-ai\+cordis@/.test(entry)
+    || (/^@deepseek-ai\+dsh(?:@|[-+])/.test(entry) && !entry.startsWith('@deepseek-ai+dsh-tool-session-query@'))
+    || entry === '@deepseek-ai/cordis'
+    || (entry.startsWith('@deepseek-ai/dsh') && entry !== '@deepseek-ai/dsh-tool-session-query')
+  ))
+  assert(
+    privateRuntime.length === 0,
+    profile,
+    'runtime-peers',
+    `plugin install contains private runtime copies: ${privateRuntime.join(', ')}`,
+  )
+}
+
+async function optionalDirectoryEntries(path) {
+  try {
+    return await readdir(path)
+  } catch (error) {
+    if (error?.code === 'ENOENT') return []
+    throw error
+  }
+}
+
+async function assertInstalledRuntimePeers(home, profile) {
+  const root = profilePath(home, profile)
+  const pluginRoot = join(root, 'node_modules', PACKAGE_NAME)
+  const pluginManifestPath = join(pluginRoot, 'package.json')
+  let pluginManifest
+  try {
+    pluginManifest = JSON.parse(await readFile(pluginManifestPath, 'utf8'))
+  } catch (error) {
+    throw new SmokeStageError(profile, 'runtime-peers', `could not read installed plugin manifest: ${error instanceof Error ? error.message : String(error)}`)
+  }
+  const peerNames = Object.keys(pluginManifest?.peerDependencies ?? {})
+  assert(peerNames.includes('@deepseek-ai/dsh-compaction-basic'), profile, 'runtime-peers', 'installed plugin is missing its compaction runtime peer declaration')
+  assert(peerNames.includes('@deepseek-ai/dsh-llm'), profile, 'runtime-peers', 'installed plugin is missing its LLM runtime peer declaration')
+  const pnpmEntries = await optionalDirectoryEntries(join(pluginRoot, 'node_modules', '.pnpm'))
+  const scopedEntries = (await optionalDirectoryEntries(join(pluginRoot, 'node_modules', '@deepseek-ai')))
+    .map((entry) => `@deepseek-ai/${entry}`)
+  assertNoPrivateRuntimeEntries([...pnpmEntries, ...scopedEntries], profile)
 }
 
 function assertRemovedManifest(manifest, profile) {
@@ -266,6 +310,8 @@ async function runProfileJourney(cwd, home, tarball, profile, timeoutMs, onStage
   })
   const manifest = await readManifest(home, profile, 'bundle')
   assertInstalledManifest(manifest, profile)
+  onStage?.(`${profile}:runtime-peers`)
+  await assertInstalledRuntimePeers(home, profile)
   const composition = await dumpConfig(cwd, home, profile, 'composition', timeoutMs, onStage)
   assertSmokeComposition(composition, profile)
   await bootProfile(cwd, home, profile, 'boot', timeoutMs, onStage)
@@ -282,7 +328,7 @@ async function runProfileJourney(cwd, home, tarball, profile, timeoutMs, onStage
   const removedComposition = await dumpConfig(cwd, home, profile, 'post-remove-composition', timeoutMs, onStage)
   assertRemovedComposition(removedComposition, profile)
   await bootProfile(cwd, home, profile, 'post-remove-boot', timeoutMs, onStage)
-  return { profile, home, install: true, bundle: true, composition: true, boot: true, removal: true, postRemoveBoot: true }
+  return { profile, home, install: true, bundle: true, runtimePeers: true, composition: true, boot: true, removal: true, postRemoveBoot: true }
 }
 
 /**

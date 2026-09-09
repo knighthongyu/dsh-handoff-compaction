@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import LlmRuntime, {
-  CallId,
+  ToolCallId,
   LlmAdapter,
   createAssistantMessage,
   createToolResultMessage,
@@ -31,7 +31,13 @@ class SummaryAdapter extends LlmAdapter {
   }
 
   override async resolveModel(provider: string, model: string): Promise<LlmResolvedModelInfo> {
-    return { provider, id: model, name: model, context: { contextWindow: 100_000 } }
+    return {
+      provider,
+      id: model,
+      name: model,
+      context: { contextWindow: 100_000 },
+      reasoning: { efforts: [{ id: 'medium' as never, name: 'medium' }] },
+    }
   }
 
   override async *stream(options: GenerateOptions): AsyncIterable<StreamChunk> {
@@ -48,7 +54,13 @@ class SequencedSummaryAdapter extends LlmAdapter {
   }
 
   override async resolveModel(provider: string, model: string): Promise<LlmResolvedModelInfo> {
-    return { provider, id: model, name: model, context: { contextWindow: 100_000 } }
+    return {
+      provider,
+      id: model,
+      name: model,
+      context: { contextWindow: 100_000 },
+      reasoning: { efforts: [{ id: 'medium' as never, name: 'medium' }] },
+    }
   }
 
   override async *stream(options: GenerateOptions): AsyncIterable<StreamChunk> {
@@ -62,6 +74,10 @@ async function setup(adapter: LlmAdapter) {
   contexts.push(ctx)
   await ctx.plugin(LlmRuntime)
   await ctx.plugin(SessionStore)
+  const { default: SessionProjection } = await import(
+    dshRequire.resolve('@deepseek-ai/dsh-session-projection')
+  )
+  await ctx.plugin(SessionProjection)
   const { default: TokenMeter } = await import(dshRequire.resolve('@deepseek-ai/dsh-token-meter'))
   await ctx.plugin(TokenMeter)
   ctx.llm.registerAdapter(['runtime'], adapter)
@@ -71,11 +87,18 @@ async function setup(adapter: LlmAdapter) {
 
 function populateSession(ctx: Context, exactFact: string) {
   const session = ctx.sessions.create(SessionId('runtime-target'), { meta: { cwd: process.cwd() } })
-  const callId = CallId('old-call')
+  const callId = ToolCallId('old-call')
   session.append('turn/start', { turn: 0 })
   session.append('step/start', { turn: 0, step: 0 })
   session.append('request/header', {
-    header: { config: { provider: 'runtime', model: 'summary-model' } },
+    header: {
+      config: {
+        provider: 'runtime',
+        model: 'summary-model',
+        reasoningEffort: 'medium' as never,
+        temperature: 0.25,
+      },
+    },
     reason: 'initial',
   })
   const oldPrompt = session.append('user/message', createUserMessage({
@@ -170,7 +193,7 @@ describe('composed compaction runtime', () => {
     ])
     const ctx = await setup(adapter)
     const { session, oldPrompt, assistant, toolResult, recent } = populateSession(ctx, 'ORBIT-NEBULA-7319')
-    const originalToolEvent = structuredClone(session.events[toolResult.seq])
+    const originalToolEvent = structuredClone(session.eventAt(toolResult.seq))
     const agent = { session, options: { provider: 'runtime', model: 'summary-model' } } as never
 
     const result = await (ctx.compaction as HandoffCompactionEngine).compactRegion(
@@ -181,6 +204,11 @@ describe('composed compaction runtime', () => {
     )
 
     expect(adapter.calls).toHaveLength(1)
+    expect(adapter.calls[0]).toMatchObject({
+      reasoningEffort: 'medium',
+      temperature: 0.25,
+      maxTokens: 8192,
+    })
     expect(JSON.stringify(adapter.calls[0]?.messages.slice(0, -1))).toContain(
       'RECENT-TAIL-MUST-STAY',
     )
@@ -191,11 +219,11 @@ describe('composed compaction runtime', () => {
       type: 'text',
       text: handoffInstruction(3, { retainedMessageCount: 2, recovery: false }),
     })
-    const summaryEvent = session.events[result.summarySeq] as any
+    const summaryEvent = session.eventAt(result.summarySeq) as any
     expect(summaryEvent.type).toBe('compaction/summary')
     expect(summaryEvent.data.shadowedSeqs).toEqual([oldPrompt.seq, assistant.seq, toolResult.seq])
     expect(summaryEvent.data.summary[0].text).toMatch(/^# Context Handoff/)
-    const checkpoint = session.events.find((event: any) => (
+    const checkpoint = session.snapshotEvents().find((event: any) => (
       event.type === 'user/message' && event.sourceEventSeqs?.includes(result.summarySeq)
     )) as any
     expect(checkpoint.data.content.map((block: any) => block.text).join('\n')).toContain('<compacted-summary>')
@@ -205,9 +233,9 @@ describe('composed compaction runtime', () => {
     ]))
     expect(session.surface.nodes).toContain(recent.seq)
     expect(session.surface.nodes).not.toContain(toolResult.seq)
-    expect(session.events[toolResult.seq]).toEqual(originalToolEvent)
+    expect(session.eventAt(toolResult.seq)).toEqual(originalToolEvent)
     expect(ctx.get('toolResultPruner')).toBeUndefined()
-    expect(session.events.some((event) => event.type.includes('prune'))).toBe(false)
+    expect(session.snapshotEvents().some((event) => event.type.includes('prune'))).toBe(false)
   })
 
   it('keeps the selected surface unchanged when the summary is cancelled', async () => {
@@ -225,7 +253,7 @@ describe('composed compaction runtime', () => {
       oldPrompt.seq, toolResult.seq, agent, new AbortController().signal,
     )).rejects.toMatchObject({ code: 'ABORTED' })
     expect(session.surface.nodes).toEqual(before)
-    expect(session.events.filter((event) => event.type === 'compaction/summary')).toHaveLength(0)
+    expect(session.snapshotEvents().filter((event) => event.type === 'compaction/summary')).toHaveLength(0)
   })
 
   it('records one failed bracket after both all-none handoff attempts are rejected', async () => {
@@ -236,7 +264,7 @@ describe('composed compaction runtime', () => {
     const ctx = await setup(adapter)
     const { session, oldPrompt, toolResult } = populateSession(ctx, 'EMPTY-HANDOFF-FACT')
     const beforeSurface = [...session.surface.nodes]
-    const beforeEventCount = session.events.length
+    const beforeEventCount = session.snapshotEvents().length
     const agent = { session, options: { provider: 'runtime', model: 'summary-model' } } as never
 
     await expect((ctx.compaction as HandoffCompactionEngine).compactRegion(
@@ -246,7 +274,7 @@ describe('composed compaction runtime', () => {
       new AbortController().signal,
     )).rejects.toMatchObject({ code: 'HANDOFF_ALL_SECTIONS_EMPTY' })
 
-    const attemptEvents = session.events.slice(beforeEventCount) as any[]
+    const attemptEvents = session.snapshotEvents().slice(beforeEventCount) as any[]
     expect(adapter.calls).toHaveLength(2)
     expect(attemptEvents.map((event) => event.type)).toEqual([
       'compaction/start',
@@ -271,7 +299,7 @@ describe('composed compaction runtime', () => {
           index: 1,
           block: {
             type: 'tool-call',
-            id: CallId('summary-tool-call'),
+            id: ToolCallId('summary-tool-call'),
             name: 'bash',
             arguments: '{"command":"pwd"}',
           },
@@ -285,7 +313,7 @@ describe('composed compaction runtime', () => {
     ])
     const ctx = await setup(adapter)
     const { session, oldPrompt, toolResult } = populateSession(ctx, 'TOOL-CALL-RECOVERY-FACT')
-    const beforeEventCount = session.events.length
+    const beforeEventCount = session.snapshotEvents().length
     const agent = { session, options: { provider: 'runtime', model: 'summary-model' } } as never
 
     const result = await (ctx.compaction as HandoffCompactionEngine).compactRegion(
@@ -299,7 +327,7 @@ describe('composed compaction runtime', () => {
     expect(adapter.calls[0]?.messages.slice(0, -1)).toEqual(
       adapter.calls[1]?.messages.slice(0, -1),
     )
-    const attemptEvents = session.events.slice(beforeEventCount) as any[]
+    const attemptEvents = session.snapshotEvents().slice(beforeEventCount) as any[]
     expect(attemptEvents.map((event) => event.type)).toEqual([
       'compaction/start',
       'compaction/summary',
@@ -308,7 +336,7 @@ describe('composed compaction runtime', () => {
     ])
     expect(attemptEvents[2]?.surfaceOp).toMatchObject({ op: 'replace' })
     expect(attemptEvents.filter((event) => event.type === 'compaction/summary')).toHaveLength(1)
-    expect((session.events[result.summarySeq] as any).data.summary[0].text).toMatch(
+    expect((session.eventAt(result.summarySeq) as any).data.summary[0].text).toMatch(
       /^# Context Handoff/,
     )
   })

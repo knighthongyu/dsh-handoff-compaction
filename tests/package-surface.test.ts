@@ -24,7 +24,7 @@ describe('published package surface', () => {
       keywords?: string[]
     }
 
-    expect(manifest.version).toBe('0.1.1')
+    expect(manifest.version).toBe('0.1.2')
     expect(manifest.license).toBe('MIT')
     expect(manifest.packageManager).toBe('pnpm@11.22.0')
     expect(manifest.repository).toEqual({
@@ -139,6 +139,33 @@ SOFTWARE.
       expect(manifest.peerDependencies).not.toHaveProperty(dependency)
       expect(manifest.devDependencies).not.toHaveProperty(dependency)
     }
+  })
+
+  it('tests and declares compatibility with the installed DSH 0.1.2 prerelease', async () => {
+    const manifest = JSON.parse(await readFile(resolve('package.json'), 'utf8')) as {
+      peerDependencies?: Record<string, string>
+      devDependencies?: Record<string, string>
+    }
+    const peers = manifest.peerDependencies ?? {}
+    const dev = manifest.devDependencies ?? {}
+
+    for (const dependency of [
+      '@deepseek-ai/dsh',
+      '@deepseek-ai/dsh-agent',
+      '@deepseek-ai/dsh-compaction-basic',
+      '@deepseek-ai/dsh-invariants',
+      '@deepseek-ai/dsh-llm',
+      '@deepseek-ai/dsh-session',
+      '@deepseek-ai/dsh-session-query',
+      '@deepseek-ai/dsh-system-prompt',
+      '@deepseek-ai/dsh-timeout',
+      '@deepseek-ai/dsh-tools',
+    ]) {
+      expect(peers[dependency]).toContain('^0.1.2-rc.1')
+      expect(dev[dependency]).toBe('0.1.2-rc.1')
+    }
+    expect(dev['@deepseek-ai/cordis']).toBe('4.0.2')
+    expect(dev).not.toHaveProperty('@deepseek-ai/dsh-agent-loop-testkit')
   })
 
   it('builds resolvable public entry points at the declared paths', async () => {

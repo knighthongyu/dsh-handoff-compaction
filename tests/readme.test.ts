@@ -10,7 +10,7 @@ const sharedIdentifiers = [
   'dsh plugin --profile web remove dsh-handoff-compaction',
   'dsh plugin --profile web add github:knighthongyu/dsh-handoff-compaction',
   'dsh plugin --profile web add ./dsh-handoff-compaction',
-  'dsh plugin --profile web add ./dsh-handoff-compaction-0.1.1.tgz',
+  'dsh plugin --profile web add ./dsh-handoff-compaction-0.1.2.tgz',
   'thresholdRatio: 0.8',
   'retainTokens: 16000',
   'maxTokens: 8192',
@@ -23,6 +23,7 @@ const sharedIdentifiers = [
   '@deepseek-ai/dsh-tool-session-query',
   '0.1.0-rc.8',
   '0.1.1-rc.2',
+  '0.1.2-rc.1',
   'pnpm install',
   'pnpm typecheck',
   'pnpm test',
@@ -120,6 +121,20 @@ describe.each([
     }
     for (const pattern of forbiddenSemantics) {
       expect(text).not.toMatch(pattern)
+    }
+  })
+
+  it('documents cache-alignment controls and the cross-route boundary', async () => {
+    const text = await readFile(resolve(filename), 'utf8')
+
+    expect(text).toContain('reasoningEffort')
+    expect(text).toContain('temperature')
+    expect(text).toContain('stop')
+    expect(text).toContain('cacheAlignment')
+    if (filename === 'README.md') {
+      expect(text).toMatch(/different summary route.*cannot reuse/i)
+    } else {
+      expect(text).toMatch(/不同摘要路由.*无法复用/)
     }
   })
 

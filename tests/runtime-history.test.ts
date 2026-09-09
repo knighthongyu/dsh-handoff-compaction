@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { readFile } from 'node:fs/promises'
 import { Context } from '@deepseek-ai/cordis'
-import {
-  CallId,
+import LlmRuntime, {
+  ToolCallId,
   LlmAdapter,
   createAssistantMessage,
   createUserMessage,
@@ -10,8 +10,10 @@ import {
   type LlmResolvedModelInfo,
   type StreamChunk,
 } from '@deepseek-ai/dsh-llm'
-import { SessionId } from '@deepseek-ai/dsh-session'
-import { mountAgentLoopTestDependencies } from '@deepseek-ai/dsh-agent-loop-testkit'
+import AgentRegistry from '@deepseek-ai/dsh-agent'
+import SessionStore, { SessionId } from '@deepseek-ai/dsh-session'
+import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
+import ToolRuntime from '@deepseek-ai/dsh-tools'
 
 import apply, { HandoffCompactionEngine, historyToolsPlugin } from '../src/index.js'
 import {
@@ -24,6 +26,14 @@ const contexts: Context[] = []
 afterEach(async () => {
   await Promise.all(contexts.splice(0).map((ctx) => ctx.fiber.dispose()))
 })
+
+async function mountRuntimeDependencies(ctx: Context): Promise<void> {
+  await ctx.plugin(LlmRuntime)
+  await ctx.plugin(SessionStore)
+  await ctx.plugin(SystemPrompt)
+  await ctx.plugin(ToolRuntime)
+  await ctx.plugin(AgentRegistry)
+}
 
 class HistorySummaryAdapter extends LlmAdapter {
   override async resolveModel(provider: string, model: string): Promise<LlmResolvedModelInfo> {
@@ -82,7 +92,11 @@ describe('official history retrieval runtime', () => {
     )).trim()) as { exactFact: string }
     const ctx = new Context()
     contexts.push(ctx)
-    await mountAgentLoopTestDependencies(ctx)
+    await mountRuntimeDependencies(ctx)
+    const { default: SessionProjection } = await import(
+      dshRequire.resolve('@deepseek-ai/dsh-session-projection')
+    )
+    await ctx.plugin(SessionProjection)
     const { default: TokenMeter } = await import(dshRequire.resolve('@deepseek-ai/dsh-token-meter'))
     await ctx.plugin(TokenMeter)
     ctx.llm.registerAdapter(['history-runtime'], new HistorySummaryAdapter())
@@ -134,11 +148,11 @@ describe('official history retrieval runtime', () => {
       { session: target, options: { provider: 'history-runtime', model: 'summary-model' } } as never,
       new AbortController().signal,
     )
-    const summaryEvent = target.events[compaction.summarySeq] as any
+    const summaryEvent = target.eventAt(compaction.summarySeq) as any
     expect(summaryEvent.data.shadowedSeqs).toEqual([factEvent.seq, oldAssistant.seq])
     expect(target.surface.nodes).toContain(recent.seq)
     expect(target.surface.nodes).not.toContain(factEvent.seq)
-    const checkpoint = target.events.find((event: any) => (
+    const checkpoint = target.snapshotEvents().find((event: any) => (
       event.type === 'user/message' && event.sourceEventSeqs?.includes(compaction.summarySeq)
     ))!
 
@@ -155,7 +169,7 @@ describe('official history retrieval runtime', () => {
     ]))
 
     const search = await ctx.tools.execute({
-      callId: CallId('history-search'),
+      callId: ToolCallId('history-search'),
       name: 'session_event_search',
       arguments: { session_id: target.id, query: fixture.exactFact },
       agent: callerAgent,
@@ -166,7 +180,7 @@ describe('official history retrieval runtime', () => {
     expect(outputText(search)).toContain(`seq ${factEvent.seq}`)
 
     const read = await ctx.tools.execute({
-      callId: CallId('history-read'),
+      callId: ToolCallId('history-read'),
       name: 'session_event_read',
       arguments: { session_id: target.id, seq: factEvent.seq },
       agent: callerAgent,
@@ -176,7 +190,7 @@ describe('official history retrieval runtime', () => {
     expect(outputText(read)).toContain(fixture.exactFact)
 
     const trace = await ctx.tools.execute({
-      callId: CallId('history-trace'),
+      callId: ToolCallId('history-trace'),
       name: 'session_event_trace',
       arguments: { session_id: target.id, seq: factEvent.seq },
       agent: callerAgent,
@@ -188,7 +202,7 @@ describe('official history retrieval runtime', () => {
 
     const outside = ctx.sessions.create(SessionId('outside-caller'), { meta: { cwd: '/tmp/outside-workspace' } })
     const denied = await ctx.tools.execute({
-      callId: CallId('history-denied'),
+      callId: ToolCallId('history-denied'),
       name: 'session_event_read',
       arguments: { session_id: target.id, seq: factEvent.seq },
       agent: { session: outside, options: {} } as never,

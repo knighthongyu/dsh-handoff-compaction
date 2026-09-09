@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import { BasicCompactionEngine } from '@deepseek-ai/dsh-compaction-basic'
 import {
-  CallId,
+  ToolCallId,
   createUserMessage,
   type GenerateOptions,
   type StreamChunk,
@@ -69,12 +69,16 @@ function makeEngine(
   stream: (options: GenerateOptions) => AsyncIterable<StreamChunk>,
   config: Record<string, unknown> = {},
   warnings: string[] = [],
+  infos: string[] = [],
 ) {
   const engine = Object.create(ExposedEngine.prototype) as ExposedEngine
   Object.defineProperty(engine, 'ctx', {
     value: {
       llm: { stream },
-      logger: { warn: (message: string) => warnings.push(message) },
+      logger: {
+        warn: (message: string) => warnings.push(message),
+        info: (message: string) => infos.push(message),
+      },
     },
   })
   Object.defineProperty(engine, 'config', {
@@ -102,7 +106,7 @@ function sourceMessage(text = 'original context') {
 }
 
 function fakeAgent(
-  latest?: { provider: string; model: string },
+  latest?: { provider: string; model: string } & Record<string, unknown>,
   options: Record<string, unknown> = {},
   surfaceMessages?: readonly ReturnType<typeof sourceMessage>[],
 ) {
@@ -180,6 +184,79 @@ describe('HandoffCompactionEngine', () => {
     })
   })
 
+  it('inherits every reusable durable request control on the same route', async () => {
+    const calls: GenerateOptions[] = []
+    const infos: string[] = []
+    const stream = async function* (options: GenerateOptions) {
+      calls.push(options)
+      yield { type: 'block-end', index: 0, block: { type: 'text', text: validHandoff } } as const
+      yield {
+        type: 'usage',
+        usage: { inputTokens: 80_000, outputTokens: 900, cacheReadTokens: 78_000 },
+      } as const
+      yield { type: 'finish', reason: { kind: 'stop' } } as const
+    }
+    const engine = makeEngine(stream, {}, [], infos)
+
+    await engine.runSummary(
+      { messages: [sourceMessage()] },
+      fakeAgent({
+        provider: 'same-provider',
+        model: 'same-model',
+        reasoningEffort: 'medium',
+        temperature: 0.25,
+        maxTokens: 16_000,
+        stop: ['END'],
+      }),
+    )
+
+    expect(calls).toHaveLength(1)
+    expect(calls[0]).toMatchObject({
+      provider: 'same-provider',
+      model: 'same-model',
+      reasoningEffort: 'medium',
+      temperature: 0.25,
+      stop: ['END'],
+      maxTokens: 8192,
+    })
+    expect(infos).toHaveLength(1)
+    expect(infos[0]).toContain('cacheAlignment=same-route')
+    expect(infos[0]).toContain('reasoningEffort=medium')
+    expect(infos[0]).toContain('cacheReadTokens=78000')
+  })
+
+  it('does not leak durable request controls into a different summary route', async () => {
+    const calls: GenerateOptions[] = []
+    const infos: string[] = []
+    const stream = async function* (options: GenerateOptions) {
+      calls.push(options)
+      yield { type: 'block-end', index: 0, block: { type: 'text', text: validHandoff } } as const
+      yield { type: 'finish', reason: { kind: 'stop' } } as const
+    }
+    const engine = makeEngine(stream, {
+      summarizationProvider: 'summary-provider',
+      summarizationModel: 'summary-model',
+    }, [], infos)
+
+    await engine.runSummary(
+      { messages: [sourceMessage()] },
+      fakeAgent({
+        provider: 'conversation-provider',
+        model: 'conversation-model',
+        reasoningEffort: 'medium',
+        temperature: 0.25,
+        stop: ['END'],
+      }),
+    )
+
+    expect(calls).toHaveLength(1)
+    expect(calls[0]).not.toHaveProperty('reasoningEffort')
+    expect(calls[0]).not.toHaveProperty('temperature')
+    expect(calls[0]).not.toHaveProperty('stop')
+    expect(infos).toHaveLength(1)
+    expect(infos[0]).toContain('cacheAlignment=different-route')
+  })
+
   it('sends the complete current surface while limiting the summary source to the selected prefix', async () => {
     const calls: GenerateOptions[] = []
     const stream = async function* (options: GenerateOptions) {
@@ -206,11 +283,12 @@ describe('HandoffCompactionEngine', () => {
 
   it('fails before the provider call when the selected source is not the current surface prefix', async () => {
     let calls = 0
+    const warnings: string[] = []
     const engine = makeEngine(async function* () {
       calls += 1
       yield { type: 'block-end', index: 0, block: { type: 'text', text: validHandoff } } as const
       yield { type: 'finish', reason: { kind: 'stop' } } as const
-    })
+    }, {}, warnings)
     const selected = sourceMessage('SELECTED-OLD-PREFIX')
     const different = sourceMessage('DIFFERENT-CURRENT-PREFIX')
 
@@ -219,6 +297,12 @@ describe('HandoffCompactionEngine', () => {
       fakeAgent({ provider: 'p', model: 'm' }, {}, [different]),
     )).rejects.toMatchObject({ code: 'HANDOFF_SOURCE_MISMATCH' })
     expect(calls).toBe(0)
+    expect(warnings).toHaveLength(1)
+    expect(warnings[0]).toContain('cacheAlignment=same-route')
+    expect(warnings[0]).toContain('reasoningEffort=provider-default')
+    expect(warnings[0]).toContain('temperature=provider-default')
+    expect(warnings[0]).toContain('stopCount=0')
+    expect(warnings[0]).toContain('attempt=preflight')
   })
 
   it('falls back from latest durable route to complete Agent options', async () => {
@@ -277,16 +361,23 @@ describe('HandoffCompactionEngine', () => {
 
   it('rejects an empty replay source before calling the provider', async () => {
     let calls = 0
+    const warnings: string[] = []
     const engine = makeEngine(async function* () {
       calls += 1
       yield { type: 'finish', reason: { kind: 'stop' } } as const
-    })
+    }, {}, warnings)
 
     await expect(engine.runSummary(
       { messages: [] },
       fakeAgent({ provider: 'p', model: 'm' }),
     )).rejects.toMatchObject({ code: 'HANDOFF_SOURCE_EMPTY' })
     expect(calls).toBe(0)
+    expect(warnings).toHaveLength(1)
+    expect(warnings[0]).toContain('cacheAlignment=same-route')
+    expect(warnings[0]).toContain('reasoningEffort=provider-default')
+    expect(warnings[0]).toContain('temperature=provider-default')
+    expect(warnings[0]).toContain('stopCount=0')
+    expect(warnings[0]).toContain('attempt=preflight')
   })
 
   it('recovers from an all-none result inside the transaction and clears recovery state', async () => {
@@ -349,7 +440,7 @@ describe('HandoffCompactionEngine', () => {
           index: 1,
           block: {
             type: 'tool-call',
-            id: CallId('call-summary-mistake'),
+            id: ToolCallId('call-summary-mistake'),
             name: 'bash',
             arguments: '{"command":"pwd"}',
           },

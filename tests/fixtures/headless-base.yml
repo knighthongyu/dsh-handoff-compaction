@@ -1,4 +1,4 @@
-# Relevant rows copied from the installed DSH 0.1.1-rc.2 base/headless composition.
+# Relevant rows shared by the verified DSH 0.1.1-rc.2 and 0.1.2-rc.1 headless compositions.
 - insert:
     - id: session-query-sqlite
       name: '@deepseek-ai/dsh-session-query-sqlite'

@@ -2,7 +2,7 @@
 
 `dsh-handoff-compaction` 用结构化的 `# Context Handoff` 替换 DSH 基础上下文摘要，同时复用 DSH 原生压缩事务、`/compact` 命令、重试机制、最近原文尾部和只追加会话日志，并挂载官方持久化历史检索包。
 
-兼容版本：DSH `0.1.1-rc.2`；`@deepseek-ai/dsh-tool-session-query` `0.1.0-rc.8`；Node.js `^22.19.0 || >=24.0.0`。
+兼容版本：DSH `0.1.1-rc.2` 与 `0.1.2-rc.1`；`@deepseek-ai/dsh-tool-session-query` `0.1.0-rc.8`；Node.js `^22.19.0 || >=24.0.0`。
 
 ## 安装
 
@@ -49,7 +49,7 @@ auto: true
 dsh plugin --profile web add dsh-handoff-compaction
 dsh plugin --profile web add github:knighthongyu/dsh-handoff-compaction
 dsh plugin --profile web add ./dsh-handoff-compaction
-dsh plugin --profile web add ./dsh-handoff-compaction-0.1.1.tgz
+dsh plugin --profile web add ./dsh-handoff-compaction-0.1.2.tgz
 ```
 
 ## 历史检索
@@ -83,7 +83,9 @@ dsh plugin --profile headless remove dsh-handoff-compaction
 
 ## 失败边界
 
-摘要取消、流错误、空重放输入、Handoff 结构错误、全 `(none)`、缺失可恢复工作状态、图片输出或达到 max-token 都会 fail closed：不提交替换摘要，选中的原始 surface 保持当前状态。当提供方返回无效 Markdown 或 tool calls 时，插件会在同一压缩事务内立即进行一次恢复调用，并使用更强的指令。两次调用重放相同的 system prompt、tools 和源消息前缀，以便利用长前缀缓存；只改变简短的最终恢复指令。若恢复仍失败，选中的原始 surface 继续保持当前状态。校验诊断只包含错误码、源消息数量、模型路由、尝试次数和 token 使用量，不记录对话或摘要正文。
+摘要取消、流错误、空重放输入、Handoff 结构错误、全 `(none)`、缺失可恢复工作状态、图片输出或达到 max-token 都会 fail closed：不提交替换摘要，选中的原始 surface 保持当前状态。当提供方返回无效 Markdown 或 tool calls 时，插件会在同一压缩事务内立即进行一次恢复调用，并使用更强的指令。两次调用重放相同的 system prompt、tools 和源消息前缀；在同一 provider/model 路由上，还会继承会话已持久化的 `reasoningEffort`、`temperature` 和 `stop`，使模型实际渲染的提示词前缀保持缓存对齐。摘要专用的 `maxTokens` 上限仍独立生效，两次尝试之间只改变简短的最终恢复指令。配置了不同摘要路由时无法复用会话路由的提供方缓存，也不会错误继承该路由专用控制项。
+
+每次摘要完成后都会记录不含正文的诊断信息，包含 `cacheAlignment`、路由、请求控制项是否存在、尝试次数和提供方返回的 token 使用量（包括可用时的 `cacheReadTokens`）。校验失败时记录同类安全元数据和错误码；两类日志都不包含对话或摘要正文。
 
 成功交接后仍保留最近原文尾部，较早事件继续存在于只追加历史中。必须禁用 `tool-result-pruner`，避免工具结果被另一条链路单独且不可逆地剥离。安装本修复不会自动修正已经提交的全 `(none)` checkpoint；这类既有会话需要从 shadowed events 显式恢复。
 

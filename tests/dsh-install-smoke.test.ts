@@ -7,6 +7,7 @@ interface SmokeProfile {
   profile: string
   install: boolean
   bundle: boolean
+  runtimePeers: boolean
   composition: boolean
   boot: boolean
   removal: boolean
@@ -20,6 +21,7 @@ interface SmokeReport {
 interface SmokeHarnessHelpers {
   redactSmokeOutput: (output: string, environment?: NodeJS.ProcessEnv) => string
   assertSmokeComposition: (dump: string, profile: string) => void
+  assertNoPrivateRuntimeEntries: (entries: string[], profile: string) => void
 }
 
 describe('DSH install smoke safety checks', () => {
@@ -51,6 +53,15 @@ describe('DSH install smoke safety checks', () => {
       '  disabled: true',
     ].join('\n'), 'web')).toThrow('handoff compaction is disabled')
   })
+
+  it('rejects a plugin that resolves a second DSH runtime tree', async () => {
+    const { assertNoPrivateRuntimeEntries } = await import(harnessModule) as unknown as SmokeHarnessHelpers
+
+    expect(() => assertNoPrivateRuntimeEntries([
+      '@deepseek-ai+dsh-session@0.1.1-rc.2_peer-hash',
+      '@deepseek-ai+dsh-tool-session-query@0.1.0-rc.8_peer-hash',
+    ], 'web')).toThrow('contains private runtime copies')
+  })
 })
 
 describe.skipIf(!smokeEnabled)('packed DSH plugin installation', () => {
@@ -64,7 +75,7 @@ describe.skipIf(!smokeEnabled)('packed DSH plugin installation', () => {
     expect(report.profiles).toHaveLength(2)
     expect(report.profiles.map((profile) => profile.profile).sort()).toEqual(['headless', 'web'])
     expect(report.profiles.every((profile) => (
-      profile.install && profile.bundle && profile.composition && profile.boot && profile.removal && profile.postRemoveBoot
+      profile.install && profile.bundle && profile.runtimePeers && profile.composition && profile.boot && profile.removal && profile.postRemoveBoot
     ))).toBe(true)
   })
 })
