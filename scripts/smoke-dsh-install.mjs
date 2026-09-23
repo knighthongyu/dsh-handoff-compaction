@@ -5,6 +5,7 @@ import { dirname, join, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const PACKAGE_NAME = 'dsh-handoff-compaction'
+const DSH_SMOKE_BIN = process.env.DSH_SMOKE_DSH_BIN
 const PROFILES = ['web', 'headless']
 const DEFAULT_TIMEOUT_MS = 90_000
 const WEB_READY_TIMEOUT_MS = 45_000
@@ -211,11 +212,15 @@ function assertRemovedComposition(dump, profile) {
 }
 
 function dshArgs(args) {
-  return ['exec', 'dsh', ...args]
+  return DSH_SMOKE_BIN === undefined ? ['exec', 'dsh', ...args] : args
+}
+
+function dshCommand() {
+  return DSH_SMOKE_BIN ?? 'pnpm'
 }
 
 async function dumpConfig(cwd, home, profile, stage, timeoutMs, onStage) {
-  const result = await runCommand('pnpm', dshArgs(['--profile', profile, '--dump-config']), {
+  const result = await runCommand(dshCommand(), dshArgs(['--profile', profile, '--dump-config']), {
     cwd,
     env: childEnvironment(home),
     profile,
@@ -235,7 +240,7 @@ function stopWeb(child) {
 function bootWeb(cwd, home, stage, timeoutMs, onStage) {
   return new Promise((resolveBoot, rejectBoot) => {
     onStage?.(`web:${stage}`)
-    const child = spawn('pnpm', dshArgs(['web', '--no-open', '--port', '0']), {
+    const child = spawn(dshCommand(), dshArgs(['web', '--no-open', '--port', '0']), {
       cwd,
       env: childEnvironment(home),
       stdio: ['ignore', 'pipe', 'pipe'],
@@ -289,7 +294,7 @@ function bootWeb(cwd, home, stage, timeoutMs, onStage) {
 
 async function bootProfile(cwd, home, profile, stage, timeoutMs, onStage) {
   if (profile === 'web') return bootWeb(cwd, home, stage, timeoutMs, onStage)
-  await runCommand('pnpm', dshArgs(['--profile', profile, '--help']), {
+  await runCommand(dshCommand(), dshArgs(['--profile', profile, '--help']), {
     cwd,
     env: childEnvironment(home),
     profile,
@@ -300,7 +305,7 @@ async function bootProfile(cwd, home, profile, stage, timeoutMs, onStage) {
 }
 
 async function runProfileJourney(cwd, home, tarball, profile, timeoutMs, onStage) {
-  await runCommand('pnpm', dshArgs(['plugin', '--profile', profile, 'add', tarball]), {
+  await runCommand(dshCommand(), dshArgs(['plugin', '--profile', profile, 'add', tarball]), {
     cwd,
     env: childEnvironment(home),
     profile,
@@ -315,7 +320,7 @@ async function runProfileJourney(cwd, home, tarball, profile, timeoutMs, onStage
   const composition = await dumpConfig(cwd, home, profile, 'composition', timeoutMs, onStage)
   assertSmokeComposition(composition, profile)
   await bootProfile(cwd, home, profile, 'boot', timeoutMs, onStage)
-  await runCommand('pnpm', dshArgs(['plugin', '--profile', profile, 'remove', PACKAGE_NAME]), {
+  await runCommand(dshCommand(), dshArgs(['plugin', '--profile', profile, 'remove', PACKAGE_NAME]), {
     cwd,
     env: childEnvironment(home),
     profile,

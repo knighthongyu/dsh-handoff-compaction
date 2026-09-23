@@ -81,7 +81,7 @@ async function setup(adapter: LlmAdapter) {
   const { default: TokenMeter } = await import(dshRequire.resolve('@deepseek-ai/dsh-token-meter'))
   await ctx.plugin(TokenMeter)
   ctx.llm.registerAdapter(['runtime'], adapter)
-  await ctx.plugin(HandoffCompactionEngine, { auto: false, retainTokens: 100 })
+  await ctx.plugin(HandoffCompactionEngine, { auto: false, retainTokens: 100, maxTokens: 8192 })
   return ctx
 }
 
@@ -108,11 +108,12 @@ function populateSession(ctx: Context, exactFact: string) {
   const assistant = session.append('assistant/message', {
     turn: 0,
     step: 0,
+    stream: [],
     message: createAssistantMessage({
       content: [{ type: 'tool-call', id: callId, name: 'lookup', arguments: '{}' }],
       source: { provider: 'runtime', model: 'summary-model' },
     }),
-  }, { surfaceOp: 'append', sourceEventSeqs: [] })
+  }, { surfaceOp: 'append' })
   session.append('tool/call', {
     turn: 0, step: 0, callId, name: 'lookup', arguments: '{}',
   })
@@ -137,11 +138,12 @@ function populateSession(ctx: Context, exactFact: string) {
   session.append('assistant/message', {
     turn: 1,
     step: 0,
+    stream: [],
     message: createAssistantMessage({
       content: [{ type: 'text', text: 'recent acknowledgement' }],
       source: { provider: 'runtime', model: 'summary-model' },
     }),
-  }, { surfaceOp: 'append', sourceEventSeqs: [] })
+  }, { surfaceOp: 'append' })
   session.append('step/end', { turn: 1, step: 0 })
   session.append('turn/end', { turn: 1, reason: { kind: 'completed' } })
   session.append('turn/start', { turn: 2 })

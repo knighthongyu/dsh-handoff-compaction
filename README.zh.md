@@ -13,6 +13,7 @@
 | 你需要保住的能力 | 这个插件如何处理 |
 | --- | --- |
 | 可预测的活跃上下文 | 较早内容压缩为结构化交接；最近原文尾部继续按 `retainTokens` 保留。默认保留 `16000` token 原文，摘要上限为 `8192` token。 |
+| 对缓存友好的全量上下文压缩 | 摘要请求重放**当前完整会话表面**，保持相同的 system prompt 和 tools，并在末尾追加交接指令；不会先把提示词截短到待摘要的较早部分。这样，即使本地模型服务无法复用“截短后的提示词”，原有前缀仍有机会复用。实际缓存命中取决于服务端，可查看 `cacheReadTokens`。 |
 | 不丢失长期记忆 | 历史事件仍是只追加记录。被压缩遮蔽的内容可通过官方 SQLite 历史工具按需搜索和读取。 |
 | 连续的工程判断 | `Context Handoff` 固定传递目标、进展、决策、约束、下一步和验证状态，而不是只留下泛化的故事性摘要。 |
 
@@ -25,7 +26,7 @@
 
 这不是魔法“扩窗”，也不是自动 RAG：它是把活动上下文收束到明确策略内，并让可恢复的完整历史继续留在工具可访问的地方。
 
-兼容版本：DSH `0.1.1-rc.2` 与 `0.1.2-rc.1`；`@deepseek-ai/dsh-tool-session-query` `0.1.0-rc.8`；Node.js `^22.19.0 || >=24.0.0`。
+兼容版本：DSH `0.1.1-rc.2`、`0.1.2-rc.1`、`0.1.5-rc.2`（截至 2026-09-23 的 npm `latest`）和 `0.1.7-alpha.2`（已测试的 alpha）；`@deepseek-ai/dsh-tool-session-query` `0.1.0-rc.8`；Node.js `^22.19.0 || >=24.0.0`。这些是已测试版本，不保证未来所有 DSH 版本都兼容。
 
 ## 安装
 
@@ -72,7 +73,7 @@ auto: true
 dsh plugin --profile web add dsh-handoff-compaction
 dsh plugin --profile web add github:knighthongyu/dsh-handoff-compaction
 dsh plugin --profile web add ./dsh-handoff-compaction
-dsh plugin --profile web add ./dsh-handoff-compaction-0.1.3.tgz
+dsh plugin --profile web add ./dsh-handoff-compaction-0.1.4.tgz
 ```
 
 ## 可搜索的历史，而不是被遗忘的历史

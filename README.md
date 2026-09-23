@@ -15,6 +15,7 @@ Small-context models do not usually lose capability first—they lose the thread
 | What needs to survive | How the plugin preserves it |
 | --- | --- |
 | A predictable active context | Older content becomes a structured handoff, while the recent raw tail is retained according to `retainTokens`. The defaults retain `16000` raw tokens and cap the summary at `8192` tokens. |
+| Cache-friendly full-surface compaction | The summary request replays the complete **current conversation surface** with the same system prompt and tools, then appends the handoff instruction. It does not first truncate the prompt to the older portion being summarized. This keeps the existing prefix eligible for reuse by local providers that cannot reuse a shortened prompt; actual cache hits depend on the provider and can be checked through `cacheReadTokens`. |
 | Long-term memory without loss | Session events remain append-only. Facts hidden by compaction remain searchable and readable on demand through the official SQLite history tools. |
 | Engineering continuity | `Context Handoff` carries goals, progress, decisions, constraints, next steps, and verification status—not just a generic narrative summary. |
 
@@ -27,7 +28,7 @@ Long session
 
 This is neither magic context expansion nor automatic RAG. It is a clear strategy for bounding the active context while keeping recoverable history available through tools.
 
-Compatibility: DSH `0.1.1-rc.2` and `0.1.2-rc.1`; `@deepseek-ai/dsh-tool-session-query` `0.1.0-rc.8`; Node.js `^22.19.0 || >=24.0.0`.
+Compatibility: DSH `0.1.1-rc.2`, `0.1.2-rc.1`, `0.1.5-rc.2` (npm `latest` on 2026-09-23), and `0.1.7-alpha.2` (tested alpha); `@deepseek-ai/dsh-tool-session-query` `0.1.0-rc.8`; Node.js `^22.19.0 || >=24.0.0`. These are tested versions, not a promise of compatibility with every future DSH release.
 
 ## Install
 
@@ -74,7 +75,7 @@ Every supported package source uses the same `dsh plugin --profile <profile> add
 dsh plugin --profile web add dsh-handoff-compaction
 dsh plugin --profile web add github:knighthongyu/dsh-handoff-compaction
 dsh plugin --profile web add ./dsh-handoff-compaction
-dsh plugin --profile web add ./dsh-handoff-compaction-0.1.3.tgz
+dsh plugin --profile web add ./dsh-handoff-compaction-0.1.4.tgz
 ```
 
 ## Searchable history, not forgotten history

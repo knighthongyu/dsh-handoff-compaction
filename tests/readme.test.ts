@@ -10,7 +10,7 @@ const sharedIdentifiers = [
   'dsh plugin --profile web remove dsh-handoff-compaction',
   'dsh plugin --profile web add github:knighthongyu/dsh-handoff-compaction',
   'dsh plugin --profile web add ./dsh-handoff-compaction',
-  'dsh plugin --profile web add ./dsh-handoff-compaction-0.1.3.tgz',
+  'dsh plugin --profile web add ./dsh-handoff-compaction-0.1.4.tgz',
   'thresholdRatio: 0.8',
   'retainTokens: 16000',
   'maxTokens: 8192',
@@ -24,6 +24,8 @@ const sharedIdentifiers = [
   '0.1.0-rc.8',
   '0.1.1-rc.2',
   '0.1.2-rc.1',
+  '0.1.5-rc.2',
+  '0.1.7-alpha.2',
   'pnpm install',
   'pnpm typecheck',
   'pnpm test',
@@ -102,6 +104,20 @@ describe.each([
     expect(text).toMatch(/tool-result-pruner/i)
     expect(text).toMatch(/existing sessions/i)
     expect(text).toMatch(/must not delete/i)
+  })
+
+  it('explains full-current-surface prefix reuse without promising cache hits', async () => {
+    const text = await readFile(resolve(filename), 'utf8')
+    expect(text).toContain('cacheReadTokens')
+    if (filename === 'README.md') {
+      expect(text).toMatch(/complete \*\*current conversation surface\*\*/i)
+      expect(text).toMatch(/does not first truncate/i)
+      expect(text).toMatch(/actual cache hits depend on the provider/i)
+    } else {
+      expect(text).toMatch(/\*\*当前完整会话表面\*\*/)
+      expect(text).toMatch(/不会先把提示词截短/)
+      expect(text).toMatch(/实际缓存命中取决于服务端/)
+    }
   })
 
   it('does not document the removed executable or Preset-selection journey', async () => {

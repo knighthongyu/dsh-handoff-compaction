@@ -125,11 +125,12 @@ describe('official history retrieval runtime', () => {
     const oldAssistant = target.append('assistant/message', {
       turn: 0,
       step: 0,
+      stream: [],
       message: createAssistantMessage({
         content: [{ type: 'text', text: `old analysis ${'I'.repeat(12_000)}` }],
         source: { provider: 'history-runtime', model: 'summary-model' },
       }),
-    }, { surfaceOp: 'append', sourceEventSeqs: [] })
+    }, { surfaceOp: 'append' })
     target.append('step/end', { turn: 0, step: 0 })
     target.append('turn/end', { turn: 0, reason: { kind: 'completed' } })
     target.append('turn/start', { turn: 1 })

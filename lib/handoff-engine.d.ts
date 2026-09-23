@@ -1,6 +1,14 @@
 import type { Agent } from '@deepseek-ai/dsh-agent';
 import { BasicCompactionEngine } from '@deepseek-ai/dsh-compaction-basic';
 import { type ContentBlock, type Message, type TokenUsage, type ToolSchema } from '@deepseek-ai/dsh-llm';
+declare module '@deepseek-ai/dsh-llm' {
+    interface MessageSourceMap {
+        plugin: {
+            kind: 'plugin';
+            plugin: string;
+        };
+    }
+}
 export interface HandoffSummarizationInput {
     readonly system?: string;
     readonly tools?: readonly ToolSchema[];

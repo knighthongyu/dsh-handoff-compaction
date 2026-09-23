@@ -14,6 +14,12 @@ import {
   type ToolSchema,
 } from '@deepseek-ai/dsh-llm'
 
+declare module '@deepseek-ai/dsh-llm' {
+  interface MessageSourceMap {
+    plugin: { kind: 'plugin'; plugin: string }
+  }
+}
+
 import { handoffInstruction } from './handoff-prompt.js'
 import {
   HandoffValidationError,
