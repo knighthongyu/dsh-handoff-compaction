@@ -1,6 +1,29 @@
 # DSH 结构化交接压缩
 
-`dsh-handoff-compaction` 用结构化的 `# Context Handoff` 替换 DSH 基础上下文摘要，同时复用 DSH 原生压缩事务、`/compact` 命令、重试机制、最近原文尾部和只追加会话日志，并挂载官方持久化历史检索包。
+> 让 16K、32K 等小上下文窗口的本地模型，也能更从容地延续长期 DSH 工程会话。
+
+`dsh-handoff-compaction` 不扩大模型原生上下文窗口；它把逐渐远去的对话收束成可执行的结构化 `# Context Handoff`，让活跃上下文保持在可预测、可配置的预算内。同时保留最近的原文工作现场，并把完整历史留在可搜索的 SQLite 会话记录中。
+
+它复用 DSH 原生压缩事务、`/compact` 命令、重试机制和只追加会话日志，并挂载官方持久化历史检索包。适合本地运行 16K、32K 等小窗口模型，又需要持续进行多轮开发、排错和交接的用户。
+
+## 为什么适合小上下文窗口的本地模型
+
+小窗口模型并不缺少能力，真正容易失去的是长会话中的任务脉络。基础摘要往往只能给出一段自由文本；本插件把“当前要做什么、已经做到哪里、为什么这样做”变成可审阅的交接对象：
+
+| 你需要保住的能力 | 这个插件如何处理 |
+| --- | --- |
+| 可预测的活跃上下文 | 较早内容压缩为结构化交接；最近原文尾部继续按 `retainTokens` 保留。默认保留 `16000` token 原文，摘要上限为 `8192` token。 |
+| 不丢失长期记忆 | 历史事件仍是只追加记录。被压缩遮蔽的内容可通过官方 SQLite 历史工具按需搜索和读取。 |
+| 连续的工程判断 | `Context Handoff` 固定传递目标、进展、决策、约束、下一步和验证状态，而不是只留下泛化的故事性摘要。 |
+
+```text
+长会话
+  → 结构化交接 + 最近原文尾部
+  → 小窗口模型继续当前工作
+  → 需要旧事实时，按需检索完整历史
+```
+
+这不是魔法“扩窗”，也不是自动 RAG：它是把活动上下文收束到明确策略内，并让可恢复的完整历史继续留在工具可访问的地方。
 
 兼容版本：DSH `0.1.1-rc.2` 与 `0.1.2-rc.1`；`@deepseek-ai/dsh-tool-session-query` `0.1.0-rc.8`；Node.js `^22.19.0 || >=24.0.0`。
 
@@ -49,10 +72,10 @@ auto: true
 dsh plugin --profile web add dsh-handoff-compaction
 dsh plugin --profile web add github:knighthongyu/dsh-handoff-compaction
 dsh plugin --profile web add ./dsh-handoff-compaction
-dsh plugin --profile web add ./dsh-handoff-compaction-0.1.2.tgz
+dsh plugin --profile web add ./dsh-handoff-compaction-0.1.3.tgz
 ```
 
-## 历史检索
+## 可搜索的历史，而不是被遗忘的历史
 
 Bundle 会把 `@deepseek-ai/dsh-tool-session-query` 的五个官方工具与压缩器一起注入：
 
@@ -62,7 +85,7 @@ Bundle 会把 `@deepseek-ai/dsh-tool-session-query` 的五个官方工具与压�
 - `session_event_trace`
 - `session_event_read`
 
-这里是 no automatic RAG / no automatic retrieval：只有代理判断旧工作相关时才调用工具。官方 SQLite 全文索引在第一次搜索时延迟生成到 `session-query.sqlite`。压缩只会让旧事件退出当前上下文表面，不会改写事件；因此 `session_event_search` 仍能找到被压缩遮蔽的事实，`session_event_read` 能返回完整原事件，同时继续执行 workspace 授权隔离。
+这里遵循 **no automatic RAG / no automatic retrieval**：只有代理判断旧工作相关时才调用工具。官方 SQLite 全文索引在第一次搜索时延迟生成到 `session-query.sqlite`。压缩只会让旧事件退出当前上下文表面，不会改写事件；因此 `session_event_search` 仍能找到被压缩遮蔽的事实，`session_event_read` 能返回完整原事件，同时继续执行 workspace 授权隔离。
 
 Existing sessions（已有会话）仍保持只追加。安装插件只影响后续上下文选择和压缩，不会重写历史事件；第一次检索打开或更新索引后即可查询旧记录。
 

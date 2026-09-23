@@ -2,7 +2,30 @@
 
 [中文说明](README.zh.md)
 
-`dsh-handoff-compaction` replaces DSH's basic context summary with a structured `# Context Handoff` while preserving DSH's native compaction transaction, `/compact` command, retries, recent raw tail, and append-only session log. It also mounts the official persistent history-retrieval package.
+> Help 16K, 32K, and other small-context local models carry long DSH engineering sessions forward with confidence.
+
+`dsh-handoff-compaction` does not enlarge a model's native context window. Instead, it turns aging conversation into an actionable, structured `# Context Handoff`, keeping the active context within a predictable, configurable budget. It preserves the recent raw working tail and leaves the complete history in a searchable SQLite session record.
+
+It keeps DSH's native compaction transaction, `/compact` command, retries, and append-only session log, then mounts the official persistent history-retrieval package. It is for people running 16K, 32K, or similarly constrained local models who still need to sustain multi-turn development, debugging, and handoffs.
+
+## Why it works for small-context local models
+
+Small-context models do not usually lose capability first—they lose the thread of a long task. A basic summary can reduce a session to free-form prose. This plugin makes the operational facts of the work reviewable and reusable:
+
+| What needs to survive | How the plugin preserves it |
+| --- | --- |
+| A predictable active context | Older content becomes a structured handoff, while the recent raw tail is retained according to `retainTokens`. The defaults retain `16000` raw tokens and cap the summary at `8192` tokens. |
+| Long-term memory without loss | Session events remain append-only. Facts hidden by compaction remain searchable and readable on demand through the official SQLite history tools. |
+| Engineering continuity | `Context Handoff` carries goals, progress, decisions, constraints, next steps, and verification status—not just a generic narrative summary. |
+
+```text
+Long session
+  → structured handoff + recent raw tail
+  → small-context model continues current work
+  → full history is retrieved on demand when an older fact matters
+```
+
+This is neither magic context expansion nor automatic RAG. It is a clear strategy for bounding the active context while keeping recoverable history available through tools.
 
 Compatibility: DSH `0.1.1-rc.2` and `0.1.2-rc.1`; `@deepseek-ai/dsh-tool-session-query` `0.1.0-rc.8`; Node.js `^22.19.0 || >=24.0.0`.
 
@@ -51,10 +74,10 @@ Every supported package source uses the same `dsh plugin --profile <profile> add
 dsh plugin --profile web add dsh-handoff-compaction
 dsh plugin --profile web add github:knighthongyu/dsh-handoff-compaction
 dsh plugin --profile web add ./dsh-handoff-compaction
-dsh plugin --profile web add ./dsh-handoff-compaction-0.1.2.tgz
+dsh plugin --profile web add ./dsh-handoff-compaction-0.1.3.tgz
 ```
 
-## History retrieval
+## Searchable history, not forgotten history
 
 The Bundle injects all five official tools from `@deepseek-ai/dsh-tool-session-query` with the compactor:
 
@@ -64,7 +87,7 @@ The Bundle injects all five official tools from `@deepseek-ai/dsh-tool-session-q
 - `session_event_trace`
 - `session_event_read`
 
-There is no automatic RAG or no automatic retrieval: the agent calls these tools only when prior work is relevant. The official SQLite full-text index is derived lazily in `session-query.sqlite`. Compaction shadows old surface events but does not rewrite them, so `session_event_search` can find a shadowed fact and `session_event_read` can return its exact event. Workspace authorization still applies.
+There is **no automatic RAG or automatic retrieval**: the agent calls these tools only when prior work is relevant. The official SQLite full-text index is derived lazily in `session-query.sqlite`. Compaction shadows old surface events but does not rewrite them, so `session_event_search` can find a shadowed fact and `session_event_read` can return its exact event. Workspace authorization still applies.
 
 Existing sessions remain append-only. Installing the plugin affects subsequent context selection and compaction; it does not rewrite earlier session events. Their history becomes queryable when the first search opens or updates the index.
 

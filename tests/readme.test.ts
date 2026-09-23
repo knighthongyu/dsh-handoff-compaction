@@ -10,7 +10,7 @@ const sharedIdentifiers = [
   'dsh plugin --profile web remove dsh-handoff-compaction',
   'dsh plugin --profile web add github:knighthongyu/dsh-handoff-compaction',
   'dsh plugin --profile web add ./dsh-handoff-compaction',
-  'dsh plugin --profile web add ./dsh-handoff-compaction-0.1.2.tgz',
+  'dsh plugin --profile web add ./dsh-handoff-compaction-0.1.3.tgz',
   'thresholdRatio: 0.8',
   'retainTokens: 16000',
   'maxTokens: 8192',
@@ -111,6 +111,22 @@ describe.each([
     expect(text).not.toContain(removedExecutable)
     expect(text).not.toMatch(/select .*handoff-(standard|code|cordis)/i)
     expect(text).not.toMatch(/选择.*handoff-(standard|code|cordis)/i)
+  })
+
+  it('states the small-context model value proposition without overclaiming', async () => {
+    const text = await readFile(resolve(filename), 'utf8')
+
+    if (filename === 'README.md') {
+      expect(text).toMatch(/16K, 32K, or similarly constrained local models/i)
+      expect(text).toMatch(/does not enlarge a model's native context window/i)
+      expect(text).toMatch(/goals, progress, decisions, constraints, next steps, and verification status/i)
+      expect(text).toMatch(/searchable and readable on demand through the official SQLite history tools/i)
+    } else {
+      expect(text).toMatch(/16K、32K 等小上下文窗口的本地模型/)
+      expect(text).toMatch(/不扩大模型原生上下文窗口/)
+      expect(text).toMatch(/目标、进展、决策、约束、下一步和验证状态/)
+      expect(text).toMatch(/通过官方 SQLite 历史工具按需搜索和读取/)
+    }
   })
 
   it('documents recovery and removal lifecycle semantics', async () => {
