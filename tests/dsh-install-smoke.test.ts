@@ -59,7 +59,6 @@ describe('DSH install smoke safety checks', () => {
 
     expect(() => assertNoPrivateRuntimeEntries([
       '@deepseek-ai+dsh-session@0.1.1-rc.2_peer-hash',
-      '@deepseek-ai+dsh-tool-session-query@0.1.0-rc.8_peer-hash',
     ], 'web')).toThrow('contains private runtime copies')
   })
 })

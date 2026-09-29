@@ -33,6 +33,9 @@ describe('release workflow contract', () => {
     expect(workflow).toContain('corepack prepare pnpm@11.22.0 --activate')
     expect(workflow).toContain('pnpm install --frozen-lockfile')
     expect(workflow).toContain('pnpm verify:release')
+    expect(workflow).toContain('@deepseek-ai/dsh@0.1.7-rc.2')
+    expect(workflow).toContain('DSH_SMOKE_DSH_BIN=')
+    expect(workflow).toContain('node scripts/verify-release.mjs')
 
     const cacheSetup = workflow.indexOf('cache: pnpm')
     const pnpmActivation = workflow.indexOf('corepack prepare pnpm@11.22.0 --activate')
@@ -129,7 +132,7 @@ describe('release workflow contract', () => {
     }
     const audit = await runReleasePackageAudit()
 
-    expect(audit.filename).toMatch(/^dsh-handoff-compaction-0\.1\.4\.tgz$/)
+    expect(audit.filename).toMatch(/^dsh-handoff-compaction-0\.2\.0-rc\.1\.tgz$/)
     expect(audit.sha256).toMatch(/^[a-f0-9]{64}$/)
     expect(audit.files).toEqual(expect.arrayContaining([
       'package.json',

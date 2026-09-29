@@ -1,0 +1,72 @@
+{
+  "name": "dsh-schedule-panel",
+  "version": "0.1.0",
+  "description": "DSH 定时任务面板插件：在设置页用图形界面选择触发时间、派发多个定时任务；到点自动在后台新建会话执行，并在面板中查看结果。",
+  "private": true,
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./client": {
+      "types": "./lib/client.d.ts",
+      "default": "./lib/client.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-runtime",
+        "@deepseek-ai/dsh-client-connection",
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-conversation",
+        "@deepseek-ai/dsh-client-ui-settings"
+      ]
+    }
+  },
+  "scripts": {
+    "build": "tsdown",
+    "watch": "tsdown --watch"
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "cordis",
+    "cron",
+    "schedule",
+    "settings"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.1",
+    "@deepseek-ai/dsh-agent": "^0.1.1-rc.2",
+    "@deepseek-ai/dsh-client-connection": "^0.1.1-rc.2",
+    "@deepseek-ai/dsh-client-locale": "^0.1.1-rc.2",
+    "@deepseek-ai/dsh-client-runtime": "^0.1.1-rc.2",
+    "@deepseek-ai/dsh-client-ui-conversation": "^0.1.1-rc.2",
+    "@deepseek-ai/dsh-client-ui-settings": "^0.1.1-rc.2",
+    "@deepseek-ai/dsh-host-webserver": "^0.1.1-rc.2",
+    "@deepseek-ai/dsh-llm": "^0.1.1-rc.2",
+    "@deepseek-ai/dsh-session": "^0.1.1-rc.2",
+    "@deepseek-ai/schemastery": "^3.18.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "react-dom": "^18.3.1",
+    "tsdown": "^0.22.14",
+    "typescript": "^5.9.3"
+  }
+}

@@ -28,9 +28,11 @@ Long session
 
 This is neither magic context expansion nor automatic RAG. It is a clear strategy for bounding the active context while keeping recoverable history available through tools.
 
-Compatibility: DSH `0.1.1-rc.2`, `0.1.2-rc.1`, `0.1.5-rc.2` (npm `latest` on 2026-09-23), and `0.1.7-alpha.2` (tested alpha); `@deepseek-ai/dsh-tool-session-query` `0.1.0-rc.8`; Node.js `^22.19.0 || >=24.0.0`. These are tested versions, not a promise of compatibility with every future DSH release.
+Declared compatibility: the previously supported DSH 0.1 prerelease ranges (`^0.1.1-rc.2 || ^0.1.2-rc.1 || ^0.1.5-rc.2 || ^0.1.7-alpha.2`, including `0.1.7-rc.2`) and DSH `0.2.0-rc.1`; Node.js `^22.19.0 || >=24.0.0`. This single plugin package does not require users to choose a plugin version by DSH version. This change was verified on DSH `0.1.7-rc.2` and `0.2.0-rc.1` only; the other declared versions were not rerun in this change.
 
 ## Install
+
+Install from npm by package name. The same package is used for every DSH version in the declared compatibility range. For a local checkout or tarball, see [Other package sources](#other-package-sources).
 
 Add the bundle directly to each DSH profile where you want it enabled:
 
@@ -52,7 +54,7 @@ dsh --profile web --dump-config
 dsh --profile headless --dump-config
 ```
 
-The matching `list` output must show `dsh-handoff-compaction` as installed. In each `--dump-config` output, confirm the active `handoff-compaction` entry uses `dsh-handoff-compaction` with the documented defaults and history configuration: `thresholdRatio: 0.8`, `retainTokens: 16000`, and `maxTokens: 8192`. The same dump must show the visible SQLite backend entry `@deepseek-ai/dsh-session-query-sqlite` with `openAt: first-search` and `session-query.sqlite`. Separately, `@deepseek-ai/dsh-tool-session-query` supplies the five runtime history tools; it is not the visible SQLite backend name to search for in that entry. These commands only inspect the already-installed profile; they do not install, configure, or enable anything.
+The matching `list` output must show `dsh-handoff-compaction` as installed. In each `--dump-config` output, confirm the active `handoff-compaction` entry uses `dsh-handoff-compaction` with the documented defaults and history configuration: `thresholdRatio: 0.8`, `retainTokens: 16000`, and `maxTokens: 8192`. The same dump must show the visible SQLite backend entry `@deepseek-ai/dsh-session-query-sqlite` with `openAt: first-search` and `session-query.sqlite`. The five runtime history tools are bundled in this plugin as an adaptation of `@deepseek-ai/dsh-tool-session-query`, not the visible SQLite backend name to search for in that entry. These commands only inspect the already-installed profile; they do not install, configure, or enable anything.
 
 Installation is a profile-wide replacement. The Bundle patch disables `compaction-basic` and `tool-result-pruner`, keeps `command-compact`, and injects this compactor together with the official SQLite backend at `$DSH_HOME/session-query.sqlite` using `openAt: first-search`.
 
@@ -75,12 +77,12 @@ Every supported package source uses the same `dsh plugin --profile <profile> add
 dsh plugin --profile web add dsh-handoff-compaction
 dsh plugin --profile web add github:knighthongyu/dsh-handoff-compaction
 dsh plugin --profile web add ./dsh-handoff-compaction
-dsh plugin --profile web add ./dsh-handoff-compaction-0.1.4.tgz
+dsh plugin --profile web add ./dsh-handoff-compaction-0.2.0-rc.1.tgz
 ```
 
 ## Searchable history, not forgotten history
 
-The Bundle injects all five official tools from `@deepseek-ai/dsh-tool-session-query` with the compactor:
+The Bundle injects all five tools adapted from the MIT-licensed official `@deepseek-ai/dsh-tool-session-query` implementation with the compactor:
 
 - `session_search`
 - `session_event_search`

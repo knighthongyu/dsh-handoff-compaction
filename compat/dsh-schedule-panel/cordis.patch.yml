@@ -1,0 +1,28 @@
+# dsh-schedule-panel bundle patch：把本插件行插入 profile 列表。
+#
+# 安装方式（在你的 web profile 目录下）：
+#   dsh plugin --profile web add link:<本目录>
+# 或在 profile 的 cordis.patch.yml 中直接追加：
+#   - insert:
+#       - id: schedule-panel
+#         name: 'dsh-schedule-panel'
+#
+# 安全提示：
+#   - 定时任务到点会自动执行（使用 DSH 当前账号权限），请只添加你信任的任务内容。
+#   - /dsh-schedule-panel/* 接口仅监听本机（DSH 默认回环绑定），请勿暴露到公网。
+#
+# config 详解（全部可选）：
+#   defaultCwd           任务默认工作目录；留空 = DSH 进程的启动目录
+#   defaultProvider      任务默认模型服务商；留空 = 跟随设置页的模型选择
+#   defaultModel         任务默认模型；留空 = 跟随设置页的模型选择
+#   tickSeconds          定时检查任务的时间间隔（秒）；cron 精确到分钟，默认 30 秒足够
+#   maxRunMs             单次任务运行超时（毫秒）；0 = 不限时
+- insert:
+    - id: schedule-panel
+      name: 'dsh-schedule-panel'
+      config:
+        defaultCwd: ''
+        defaultProvider: ''
+        defaultModel: ''
+        tickSeconds: 30
+        maxRunMs: 1800000

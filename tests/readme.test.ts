@@ -10,7 +10,7 @@ const sharedIdentifiers = [
   'dsh plugin --profile web remove dsh-handoff-compaction',
   'dsh plugin --profile web add github:knighthongyu/dsh-handoff-compaction',
   'dsh plugin --profile web add ./dsh-handoff-compaction',
-  'dsh plugin --profile web add ./dsh-handoff-compaction-0.1.4.tgz',
+  'dsh plugin --profile web add ./dsh-handoff-compaction-0.2.0-rc.1.tgz',
   'thresholdRatio: 0.8',
   'retainTokens: 16000',
   'maxTokens: 8192',
@@ -21,11 +21,8 @@ const sharedIdentifiers = [
   'session_event_trace',
   'session_event_read',
   '@deepseek-ai/dsh-tool-session-query',
-  '0.1.0-rc.8',
-  '0.1.1-rc.2',
-  '0.1.2-rc.1',
-  '0.1.5-rc.2',
-  '0.1.7-alpha.2',
+  '0.1.7-rc.2',
+  '0.2.0-rc.1',
   'pnpm install',
   'pnpm typecheck',
   'pnpm test',
@@ -201,12 +198,12 @@ describe.each([
 
     if (filename === 'README.md') {
       expect(verificationSection).toMatch(/visible SQLite backend entry `@deepseek-ai\/dsh-session-query-sqlite`.*`openAt: first-search`.*`session-query\.sqlite`/i)
-      expect(verificationSection).toMatch(/`@deepseek-ai\/dsh-tool-session-query` supplies the five runtime history tools.*not the visible SQLite backend/i)
+      expect(verificationSection).toMatch(/five runtime history tools.*not the visible SQLite backend/i)
       expect(verificationSection).not.toMatch(/`@deepseek-ai\/dsh-tool-session-query` SQLite (?:history )?backend/i)
       expect(verificationSection).not.toMatch(/`@deepseek-ai\/dsh-tool-session-query` is (?:the )?(?:visible )?SQLite backend/i)
     } else {
       expect(verificationSection).toMatch(/可见的 SQLite 后端条目 `@deepseek-ai\/dsh-session-query-sqlite`.*`openAt: first-search`.*`session-query\.sqlite`/)
-      expect(verificationSection).toMatch(/`@deepseek-ai\/dsh-tool-session-query`.*提供五个运行时历史工具.*不是.*可见的 SQLite 后端/)
+      expect(verificationSection).toMatch(/五个运行时历史工具.*不是.*可见的 SQLite 后端/)
       expect(verificationSection).not.toMatch(/`@deepseek-ai\/dsh-tool-session-query` SQLite 历史后端/)
       expect(verificationSection).not.toMatch(/`@deepseek-ai\/dsh-tool-session-query` 是(?:可见的)? SQLite 后端/)
     }

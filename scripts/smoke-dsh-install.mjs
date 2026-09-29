@@ -137,9 +137,9 @@ function assertInstalledManifest(manifest, profile) {
 export function assertNoPrivateRuntimeEntries(entries, profile) {
   const privateRuntime = entries.filter((entry) => (
     /^@deepseek-ai\+cordis@/.test(entry)
-    || (/^@deepseek-ai\+dsh(?:@|[-+])/.test(entry) && !entry.startsWith('@deepseek-ai+dsh-tool-session-query@'))
+    || /^@deepseek-ai\+dsh(?:@|[-+])/.test(entry)
     || entry === '@deepseek-ai/cordis'
-    || (entry.startsWith('@deepseek-ai/dsh') && entry !== '@deepseek-ai/dsh-tool-session-query')
+    || entry.startsWith('@deepseek-ai/dsh')
   ))
   assert(
     privateRuntime.length === 0,
@@ -355,7 +355,7 @@ export async function runDshInstallSmoke(options = {}) {
       assert(tarball.endsWith('.tgz'), 'pack', 'supplied-archive', 'supplied archive must be a .tgz file')
       onStage?.('pack:supplied-archive')
     } else {
-      await runCommand('pnpm', ['build'], {
+      await runCommand('pnpm', ['--config.verifyDepsBeforeRun=false', 'build'], {
         cwd,
         env: { ...process.env, CI: 'true' },
         profile: 'pack',
@@ -365,7 +365,7 @@ export async function runDshInstallSmoke(options = {}) {
       })
       const packDirectory = join(tempRoot, 'pack')
       await mkdir(packDirectory)
-      await runCommand('pnpm', ['pack', '--pack-destination', packDirectory], {
+      await runCommand('pnpm', ['--config.verifyDepsBeforeRun=false', 'pack', '--pack-destination', packDirectory], {
         cwd,
         env: { ...process.env, CI: 'true' },
         profile: 'pack',

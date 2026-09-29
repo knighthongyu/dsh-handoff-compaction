@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import { BasicCompactionEngine } from '@deepseek-ai/dsh-compaction-basic'
-import * as officialSessionQueryTools from '@deepseek-ai/dsh-tool-session-query'
+import * as compatibleSessionQueryTools from '../src/history-tools.js'
 
 import apply, {
   Config,
@@ -16,7 +16,7 @@ describe('plugin entry', () => {
     apply({ plugin } as never, { thresholdRatio: 0.9 })
 
     expect(Config).toBe(BasicCompactionEngine.Config)
-    expect(historyToolsPlugin).toBe(officialSessionQueryTools)
+    expect(historyToolsPlugin).toBe(compatibleSessionQueryTools)
     expect(plugin).toHaveBeenCalledTimes(2)
     expect(plugin).toHaveBeenNthCalledWith(1, HandoffCompactionEngine, {
       thresholdRatio: 0.9,
@@ -26,7 +26,7 @@ describe('plugin entry', () => {
       maxOverflowRetries: 1,
       auto: true,
     })
-    expect(plugin).toHaveBeenNthCalledWith(2, officialSessionQueryTools, {})
+    expect(plugin).toHaveBeenNthCalledWith(2, compatibleSessionQueryTools, {})
   })
 
   it('lets a retention ratio replace only the implicit absolute default', () => {

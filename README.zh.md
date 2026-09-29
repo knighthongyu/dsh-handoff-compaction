@@ -26,9 +26,11 @@
 
 这不是魔法“扩窗”，也不是自动 RAG：它是把活动上下文收束到明确策略内，并让可恢复的完整历史继续留在工具可访问的地方。
 
-兼容版本：DSH `0.1.1-rc.2`、`0.1.2-rc.1`、`0.1.5-rc.2`（截至 2026-09-23 的 npm `latest`）和 `0.1.7-alpha.2`（已测试的 alpha）；`@deepseek-ai/dsh-tool-session-query` `0.1.0-rc.8`；Node.js `^22.19.0 || >=24.0.0`。这些是已测试版本，不保证未来所有 DSH 版本都兼容。
+声明兼容范围：此前支持的 DSH 0.1 预发布版本范围（`^0.1.1-rc.2 || ^0.1.2-rc.1 || ^0.1.5-rc.2 || ^0.1.7-alpha.2`，包含 `0.1.7-rc.2`）以及 DSH `0.2.0-rc.1`；Node.js `^22.19.0 || >=24.0.0`。同一个插件包适用于上述范围，用户无需按 DSH 版本挑选插件版本。本次仅实际验证了 DSH `0.1.7-rc.2` 和 `0.2.0-rc.1`；声明范围内的其他版本未在本次重新运行测试。
 
 ## 安装
+
+从 npm 安装时直接使用包名；声明兼容范围内的 DSH 版本使用同一个包。本地目录或 tarball 的安装方式见下方[其他包来源](#其他包来源)。
 
 把 Bundle 直接添加到需要启用它的 DSH profile：
 
@@ -50,7 +52,7 @@ dsh --profile web --dump-config
 dsh --profile headless --dump-config
 ```
 
-对应的 `list` 输出必须显示 `dsh-handoff-compaction` 已安装。每个 `--dump-config` 输出中，确认活动的 `handoff-compaction` 条目使用 `dsh-handoff-compaction`，并保留已记录的默认值和历史配置：`thresholdRatio: 0.8`、`retainTokens: 16000`、`maxTokens: 8192`。同一份 dump 还必须显示可见的 SQLite 后端条目 `@deepseek-ai/dsh-session-query-sqlite`，其中包含 `openAt: first-search` 和 `session-query.sqlite`。`@deepseek-ai/dsh-tool-session-query` 提供五个运行时历史工具，不是用户应在该条目中查找的可见的 SQLite 后端名称。这些命令只检查已经安装的 profile，不会安装、配置或启用任何内容。
+对应的 `list` 输出必须显示 `dsh-handoff-compaction` 已安装。每个 `--dump-config` 输出中，确认活动的 `handoff-compaction` 条目使用 `dsh-handoff-compaction`，并保留已记录的默认值和历史配置：`thresholdRatio: 0.8`、`retainTokens: 16000`、`maxTokens: 8192`。同一份 dump 还必须显示可见的 SQLite 后端条目 `@deepseek-ai/dsh-session-query-sqlite`，其中包含 `openAt: first-search` 和 `session-query.sqlite`。五个运行时历史工具作为改编自 `@deepseek-ai/dsh-tool-session-query` 的代码包含在本插件中，不是用户应在该条目中查找的可见的 SQLite 后端名称。这些命令只检查已经安装的 profile，不会安装、配置或启用任何内容。
 
 安装会替换整个 profile 的压缩配置。Bundle patch 会禁用 `compaction-basic` 和 `tool-result-pruner`，保留 `command-compact`，并同时注入本压缩器与官方 SQLite 后端；数据库位于 `$DSH_HOME/session-query.sqlite`，使用 `openAt: first-search`。
 
@@ -73,12 +75,12 @@ auto: true
 dsh plugin --profile web add dsh-handoff-compaction
 dsh plugin --profile web add github:knighthongyu/dsh-handoff-compaction
 dsh plugin --profile web add ./dsh-handoff-compaction
-dsh plugin --profile web add ./dsh-handoff-compaction-0.1.4.tgz
+dsh plugin --profile web add ./dsh-handoff-compaction-0.2.0-rc.1.tgz
 ```
 
 ## 可搜索的历史，而不是被遗忘的历史
 
-Bundle 会把 `@deepseek-ai/dsh-tool-session-query` 的五个官方工具与压缩器一起注入：
+Bundle 会把改编自 MIT 授权的官方 `@deepseek-ai/dsh-tool-session-query` 的五个工具与压缩器一起注入：
 
 - `session_search`
 - `session_event_search`

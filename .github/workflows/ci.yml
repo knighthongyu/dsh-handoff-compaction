@@ -21,3 +21,21 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm verify:release
+
+  verify-dsh-017:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: corepack enable
+      - run: corepack prepare pnpm@11.22.0 --activate
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: npm install --prefix "$RUNNER_TEMP/dsh-017" --ignore-scripts --no-audit --no-fund @deepseek-ai/dsh@0.1.7-rc.2
+      - run: DSH_SMOKE_DSH_BIN="$RUNNER_TEMP/dsh-017/node_modules/.bin/dsh" node scripts/verify-release.mjs

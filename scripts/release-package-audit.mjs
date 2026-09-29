@@ -10,12 +10,14 @@ import { promisify } from 'node:util'
 const execFileAsync = promisify(execFile)
 const PROJECT_ROOT = resolve(dirname(fileURLToPath(new URL('../package.json', import.meta.url))))
 const ALLOWED_ARCHIVE_PATHS = new Set([
-  'LICENSE', 'README.md', 'README.zh.md', 'cordis.patch.yml', 'package.json',
+  'LICENSE', 'README.md', 'README.zh.md', 'THIRD_PARTY_NOTICES.md', 'cordis.patch.yml', 'package.json',
   'lib/config.d.ts', 'lib/config.d.ts.map', 'lib/config.js', 'lib/config.js.map',
   'lib/handoff-engine.d.ts', 'lib/handoff-engine.d.ts.map', 'lib/handoff-engine.js', 'lib/handoff-engine.js.map',
   'lib/handoff-prompt.d.ts', 'lib/handoff-prompt.d.ts.map', 'lib/handoff-prompt.js', 'lib/handoff-prompt.js.map',
   'lib/handoff-validation.d.ts', 'lib/handoff-validation.d.ts.map', 'lib/handoff-validation.js', 'lib/handoff-validation.js.map',
   'lib/index.d.ts', 'lib/index.d.ts.map', 'lib/index.js', 'lib/index.js.map',
+  'lib/history-tools.d.ts', 'lib/history-tools.d.ts.map', 'lib/history-tools.js', 'lib/history-tools.js.map',
+  'lib/session-events.d.ts', 'lib/session-events.d.ts.map', 'lib/session-events.js', 'lib/session-events.js.map',
 ])
 const SCAN_EXCLUDED_DIRECTORIES = new Set(['node_modules', '.pnpm-store', '.pda', '.superpowers', '.git'])
 const INTENTIONAL_TEST_FIXTURES = new Set(['tests/fixtures/sessions/history.jsonl'])
@@ -85,7 +87,7 @@ export async function withReleasePackageArchive(callback) {
   const tempRoot = await realpath(tmpdir())
   const directory = await mkdtemp(join(tempRoot, 'dsh-release-audit-'))
   try {
-    await execFileAsync('pnpm', ['pack', '--pack-destination', directory], {
+    await execFileAsync('pnpm', ['--config.verifyDepsBeforeRun=false', 'pack', '--pack-destination', directory], {
       cwd: PROJECT_ROOT,
       env: { ...process.env, CI: 'true' },
       maxBuffer: 1024 * 1024,

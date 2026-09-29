@@ -158,6 +158,16 @@ describe('official history retrieval runtime', () => {
     ))!
 
     const caller = ctx.sessions.create(SessionId('history-caller'), { meta: { cwd: workspace } })
+    caller.append('turn/start', { turn: 0 })
+    caller.append('step/start', { turn: 0, step: 0 })
+    caller.append('user/message', createUserMessage({
+      content: [{ type: 'text', text: 'CURRENT-SESSION-BOUNDARY-FACT' }],
+      source: { kind: 'user' },
+    }), { surfaceOp: 'append' })
+    caller.append('step/end', { turn: 0, step: 0 })
+    caller.append('turn/end', { turn: 0, reason: { kind: 'completed' } })
+    caller.append('turn/start', { turn: 1 })
+    caller.append('step/start', { turn: 1, step: 0 })
     const callerAgent = { session: caller, options: {} } as never
     const signal = new AbortController().signal
     const names = ctx.tools.schemas(callerAgent).map((schema) => schema.name)
@@ -179,6 +189,16 @@ describe('official history retrieval runtime', () => {
     expect(search.isError).toBe(false)
     expect(outputText(search)).toContain(fixture.exactFact)
     expect(outputText(search)).toContain(`seq ${factEvent.seq}`)
+
+    const currentSearch = await ctx.tools.execute({
+      callId: ToolCallId('history-current-search'),
+      name: 'session_event_search',
+      arguments: { query: 'CURRENT-SESSION-BOUNDARY-FACT' },
+      agent: callerAgent,
+      signal,
+    })
+    expect(currentSearch.isError).toBe(false)
+    expect(outputText(currentSearch)).toContain('CURRENT-SESSION-BOUNDARY-FACT')
 
     const read = await ctx.tools.execute({
       callId: ToolCallId('history-read'),

@@ -1,6 +1,6 @@
 {
   "name": "dsh-handoff-compaction",
-  "version": "0.1.4",
+  "version": "0.2.0-rc.1",
   "description": "Structured handoffs and searchable history for long DSH sessions on small-context local models",
   "type": "module",
   "packageManager": "pnpm@11.22.0",
@@ -30,7 +30,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "smoke:dsh": "CI=true DSH_SMOKE=1 vitest run tests/dsh-install-smoke.test.ts --testTimeout=180000",
-    "check": "pnpm typecheck && pnpm build && pnpm test",
+    "check": "pnpm typecheck && pnpm build && pnpm test && node --test tests/compat-settings.test.mjs",
     "check:package": "node scripts/release-package-audit.mjs",
     "verify:release": "pnpm check && node scripts/verify-release.mjs"
   },
@@ -39,7 +39,8 @@
     "cordis.patch.yml",
     "LICENSE",
     "README.md",
-    "README.zh.md"
+    "README.zh.md",
+    "THIRD_PARTY_NOTICES.md"
   ],
   "repository": {
     "type": "git",
@@ -58,33 +59,33 @@
     "small-context"
   ],
   "dependencies": {
-    "@deepseek-ai/dsh-tool-session-query": "^0.1.0-rc.8"
+    "@deepseek-ai/schemastery": "^3.18.1"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "^4.0.1",
-    "@deepseek-ai/dsh": "^0.1.1-rc.2 || ^0.1.2-rc.1 || ^0.1.5-rc.2 || ^0.1.7-alpha.2",
-    "@deepseek-ai/dsh-agent": "^0.1.1-rc.2 || ^0.1.2-rc.1 || ^0.1.5-rc.2 || ^0.1.7-alpha.2",
-    "@deepseek-ai/dsh-compaction-basic": "^0.1.1-rc.2 || ^0.1.2-rc.1 || ^0.1.5-rc.2 || ^0.1.7-alpha.2",
-    "@deepseek-ai/dsh-invariants": "^0.1.1-rc.2 || ^0.1.2-rc.1 || ^0.1.5-rc.2 || ^0.1.7-alpha.2",
-    "@deepseek-ai/dsh-llm": "^0.1.1-rc.2 || ^0.1.2-rc.1 || ^0.1.5-rc.2 || ^0.1.7-alpha.2",
-    "@deepseek-ai/dsh-session": "^0.1.1-rc.2 || ^0.1.2-rc.1 || ^0.1.5-rc.2 || ^0.1.7-alpha.2",
-    "@deepseek-ai/dsh-session-query": "^0.1.1-rc.2 || ^0.1.2-rc.1 || ^0.1.5-rc.2 || ^0.1.7-alpha.2",
-    "@deepseek-ai/dsh-system-prompt": "^0.1.1-rc.2 || ^0.1.2-rc.1 || ^0.1.5-rc.2 || ^0.1.7-alpha.2",
-    "@deepseek-ai/dsh-timeout": "^0.1.1-rc.2 || ^0.1.2-rc.1 || ^0.1.5-rc.2 || ^0.1.7-alpha.2",
-    "@deepseek-ai/dsh-tools": "^0.1.1-rc.2 || ^0.1.2-rc.1 || ^0.1.5-rc.2 || ^0.1.7-alpha.2"
+    "@deepseek-ai/dsh": "^0.1.1-rc.2 || ^0.1.2-rc.1 || ^0.1.5-rc.2 || ^0.1.7-alpha.2 || 0.2.0-rc.1",
+    "@deepseek-ai/dsh-agent": "^0.1.1-rc.2 || ^0.1.2-rc.1 || ^0.1.5-rc.2 || ^0.1.7-alpha.2 || 0.2.0-rc.1",
+    "@deepseek-ai/dsh-compaction-basic": "^0.1.1-rc.2 || ^0.1.2-rc.1 || ^0.1.5-rc.2 || ^0.1.7-alpha.2 || 0.2.0-rc.1",
+    "@deepseek-ai/dsh-invariants": "^0.1.1-rc.2 || ^0.1.2-rc.1 || ^0.1.5-rc.2 || ^0.1.7-alpha.2 || 0.2.0-rc.1",
+    "@deepseek-ai/dsh-llm": "^0.1.1-rc.2 || ^0.1.2-rc.1 || ^0.1.5-rc.2 || ^0.1.7-alpha.2 || 0.2.0-rc.1",
+    "@deepseek-ai/dsh-session": "^0.1.1-rc.2 || ^0.1.2-rc.1 || ^0.1.5-rc.2 || ^0.1.7-alpha.2 || 0.2.0-rc.1",
+    "@deepseek-ai/dsh-session-query": "^0.1.1-rc.2 || ^0.1.2-rc.1 || ^0.1.5-rc.2 || ^0.1.7-alpha.2 || 0.2.0-rc.1",
+    "@deepseek-ai/dsh-system-prompt": "^0.1.1-rc.2 || ^0.1.2-rc.1 || ^0.1.5-rc.2 || ^0.1.7-alpha.2 || 0.2.0-rc.1",
+    "@deepseek-ai/dsh-timeout": "^0.1.1-rc.2 || ^0.1.2-rc.1 || ^0.1.5-rc.2 || ^0.1.7-alpha.2 || 0.2.0-rc.1",
+    "@deepseek-ai/dsh-tools": "^0.1.1-rc.2 || ^0.1.2-rc.1 || ^0.1.5-rc.2 || ^0.1.7-alpha.2 || 0.2.0-rc.1"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "4.0.4",
-    "@deepseek-ai/dsh": "0.1.7-alpha.2",
-    "@deepseek-ai/dsh-agent": "0.1.7-alpha.2",
-    "@deepseek-ai/dsh-compaction-basic": "0.1.7-alpha.2",
-    "@deepseek-ai/dsh-invariants": "0.1.7-alpha.2",
-    "@deepseek-ai/dsh-llm": "0.1.7-alpha.2",
-    "@deepseek-ai/dsh-session": "0.1.7-alpha.2",
-    "@deepseek-ai/dsh-session-query": "0.1.7-alpha.2",
-    "@deepseek-ai/dsh-system-prompt": "0.1.7-alpha.2",
-    "@deepseek-ai/dsh-timeout": "0.1.7-alpha.2",
-    "@deepseek-ai/dsh-tools": "0.1.7-alpha.2",
+    "@deepseek-ai/dsh": "0.2.0-rc.1",
+    "@deepseek-ai/dsh-agent": "0.2.0-rc.1",
+    "@deepseek-ai/dsh-compaction-basic": "0.2.0-rc.1",
+    "@deepseek-ai/dsh-invariants": "0.2.0-rc.1",
+    "@deepseek-ai/dsh-llm": "0.2.0-rc.1",
+    "@deepseek-ai/dsh-session": "0.2.0-rc.1",
+    "@deepseek-ai/dsh-session-query": "0.2.0-rc.1",
+    "@deepseek-ai/dsh-system-prompt": "0.2.0-rc.1",
+    "@deepseek-ai/dsh-timeout": "0.2.0-rc.1",
+    "@deepseek-ai/dsh-tools": "0.2.0-rc.1",
     "@types/node": "^24.0.0",
     "typescript": "^5.9.2",
     "vitest": "^3.2.4"
