@@ -24,7 +24,7 @@ describe('published package surface', () => {
       keywords?: string[]
     }
 
-    expect(manifest.version).toBe('0.2.0-rc.3')
+    expect(manifest.version).toBe('0.2.0-rc.4')
     expect(manifest.license).toBe('MIT')
     expect(manifest.packageManager).toBe('pnpm@11.22.0')
     expect(manifest.repository).toEqual({
