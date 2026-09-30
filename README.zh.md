@@ -103,7 +103,7 @@ Web 界面打开左侧 **插件 → dsh-handoff-compaction**，在插件详情�
 dsh plugin --profile web add dsh-handoff-compaction
 dsh plugin --profile web add github:knighthongyu/dsh-handoff-compaction
 dsh plugin --profile web add ./dsh-handoff-compaction
-dsh plugin --profile web add ./dsh-handoff-compaction-0.2.0-rc.3.tgz
+dsh plugin --profile web add ./dsh-handoff-compaction-0.2.0-rc.4.tgz
 ```
 
 ## 可搜索的历史，而不是被遗忘的历史

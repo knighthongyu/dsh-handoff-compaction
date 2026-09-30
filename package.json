@@ -1,6 +1,6 @@
 {
   "name": "dsh-handoff-compaction",
-  "version": "0.2.0-rc.3",
+  "version": "0.2.0-rc.4",
   "description": "DSH context compression with visual token-budget settings: default 8k handoff + 16k recent context, adjustable for small-context models, with searchable full history",
   "type": "module",
   "packageManager": "pnpm@11.22.0",

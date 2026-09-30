@@ -105,7 +105,7 @@ Every supported package source uses the same `dsh plugin --profile <profile> add
 dsh plugin --profile web add dsh-handoff-compaction
 dsh plugin --profile web add github:knighthongyu/dsh-handoff-compaction
 dsh plugin --profile web add ./dsh-handoff-compaction
-dsh plugin --profile web add ./dsh-handoff-compaction-0.2.0-rc.3.tgz
+dsh plugin --profile web add ./dsh-handoff-compaction-0.2.0-rc.4.tgz
 ```
 
 ## Searchable history, not forgotten history
