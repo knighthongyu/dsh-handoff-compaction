@@ -1,10 +1,10 @@
 # DSH 结构化交接压缩
 
-> 面向小上下文模型的 DSH 上下文压缩插件：压缩预算可控，任务持续推进，完整历史仍可查询。
+> 面向小上下文模型的 DSH 上下文压缩插件：压缩大小可视化配置，默认 8k 交接摘要 + 16k 最近上下文，完整历史仍可查询。
 
 `dsh-handoff-compaction` 把较早的对话压缩成结构化交接摘要，保留最近消息的原文，完整历史则可以随时搜索和读取。模型继续工作时能看到目标、进展、决策、约束、下一步和验证状态；需要找回旧细节时，再按需查询历史。
 
-你可以设置固定的摘要 token 上限和最近消息保留预算，接近阈值时自动压缩，也可以用 `/compact` 手动触发。尤其适合 16K、32K 等小上下文窗口的本地模型：按窗口大小调整预算后，长时间开发、排错和多轮协作也能持续推进。
+**压缩后的上下文预算由你决定。** 在 Web 插件详情页直接调整摘要 token 上限和最近消息保留预算，默认 **8192 + 16000 token（8k + 16k）**，支持保存和恢复默认，重启后仍保留。接近阈值时自动压缩，也可以用 `/compact` 手动触发。尤其适合小上下文窗口的本地模型：按窗口大小调整预算后，长时间开发、排错和多轮协作也能持续推进。
 
 ## 主要功能与优势
 
@@ -12,7 +12,7 @@
 
 | 你需要保住的能力 | 这个插件如何处理 |
 | --- | --- |
-| 压缩预算可控 | `maxTokens` 控制摘要输出上限，`retainTokens` 控制最近原文的保留预算，可根据模型窗口大小调整。 |
+| 压缩大小可视化配置 | 在插件页面分别设置摘要上限与最近上下文预算，默认 8k + 16k。保存后用于后续压缩，重启仍保留；小窗口模型可调低预算，大窗口模型可保留更多原文。对应配置项是 `maxTokens` 和 `retainTokens`。 |
 | 对缓存友好的全量上下文压缩 | 摘要请求重放**当前完整会话表面**，保持相同的 system prompt 和 tools，并在末尾追加交接指令；不会先把提示词截短到待摘要的较早部分。这样，即使本地模型服务无法复用“截短后的提示词”，原有前缀仍有机会复用。实际缓存命中取决于服务端，可查看 `cacheReadTokens`。 |
 | 不丢失长期记忆 | 历史事件仍是只追加记录。被压缩遮蔽的内容可通过官方 SQLite 历史工具按需搜索和读取。 |
 | 任务持续推进 | `Context Handoff` 记录当前在做什么、已经完成什么、接下来做什么，并保留关键事实和验证状态。 |
@@ -32,9 +32,9 @@
 
 | DSH 版本 | 支持与验证情况 |
 | --- | --- |
-| `0.2.0-rc.2` | 支持；本次验证安装、Web/headless 启动、压缩和历史查询工具。 |
-| `0.2.0-rc.1` | 支持；上一版已验证。 |
-| `0.1.7-rc.2` | 支持；上一版已验证安装、Web/headless 启动和历史查询工具。 |
+| `0.2.0-rc.2` | 支持；本次验证可视化保存、恢复默认、重启保留、Web/headless 安装启动，以及压缩和历史查询工具。 |
+| `0.2.0-rc.1` | 支持；本次验证可视化保存、恢复默认、重启保留与 Web/headless 安装启动。 |
+| `0.1.7-rc.2` | 支持；本次验证可视化保存、恢复默认、重启保留与 Web/headless 安装启动。 |
 | 此前声明支持的其他 DSH 0.1 预发布版本 | 声明兼容；本次未逐一重新验证。 |
 
 DSH 0.1 peer 范围：`^0.1.1-rc.2 || ^0.1.2-rc.1 || ^0.1.5-rc.2 || ^0.1.7-alpha.2`。
@@ -80,6 +80,21 @@ maxOverflowRetries: 1
 auto: true
 ```
 
+### 可视化调整上下文预算
+
+Web 界面打开左侧 **插件 → dsh-handoff-compaction**，在插件详情页即可调整：
+
+- **交接摘要上限**：默认 **8192 token（8k）**，控制摘要生成上限。
+- **最近上下文预算**：默认 **16000 token（16k）**，保留近期对话原文。
+
+点击 **保存** 后写入当前 profile，后续压缩使用新预算，重启后仍保留。点击 **恢复默认 8k + 16k** 会填入默认值，再点保存生效。完整历史始终可搜索、读取和追溯。
+
+摘要上限须为正整数，最近上下文预算须为非负整数。完整消息和工具调用配对可能使保留量略超预算；系统提示词和工具定义还会占用上下文。小窗口模型应适当降低预算，并留出输出和系统信息的空间。
+
+如果原配置使用 `retainRatio`，保存此面板会切换为固定的 `retainTokens`。配置文件中的 `modelPolicies` 按模型覆盖仍优先于通用预算。面板接入 DSH 原生权限和配置冲突检查；部署不允许配置写入时显示只读。
+
+可视化配置支持已验证的 DSH `0.1.7-rc.2`、`0.2.0-rc.1`、`0.2.0-rc.2`。Headless 或较早版本可在当前 profile 的 `cordis.patch.yml` 调整 `handoff-compaction` 条目的 `maxTokens`、`retainTokens`；默认 Web 文件为 `$DSH_HOME/profiles/web/cordis.patch.yml`，未设置 `DSH_HOME` 时使用 `~/.dsh`。
+
 ### 其他包来源
 
 所有支持的包来源都使用同一个 `dsh plugin --profile <profile> add <source>` 接口。下面以 Web profile 演示 npm、GitHub、本地目录和打包 tarball；安装到 Headless 时把 profile 名替换为 `headless`：
@@ -88,7 +103,7 @@ auto: true
 dsh plugin --profile web add dsh-handoff-compaction
 dsh plugin --profile web add github:knighthongyu/dsh-handoff-compaction
 dsh plugin --profile web add ./dsh-handoff-compaction
-dsh plugin --profile web add ./dsh-handoff-compaction-0.2.0-rc.2.tgz
+dsh plugin --profile web add ./dsh-handoff-compaction-0.2.0-rc.3.tgz
 ```
 
 ## 可搜索的历史，而不是被遗忘的历史

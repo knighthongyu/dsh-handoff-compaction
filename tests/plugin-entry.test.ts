@@ -1,11 +1,10 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { BasicCompactionEngine } from '@deepseek-ai/dsh-compaction-basic'
 import * as compatibleSessionQueryTools from '../src/history-tools.js'
 
 import apply, {
   Config,
-  HandoffCompactionEngine,
+  liveHandoffEngine,
   historyToolsPlugin,
 } from '../src/index.js'
 
@@ -15,24 +14,22 @@ describe('plugin entry', () => {
 
     apply({ plugin } as never, { thresholdRatio: 0.9 })
 
-    expect(Config).toBe(BasicCompactionEngine.Config)
+    expect(Config.dict?.maxTokens?.meta.volatile).toBe(true)
+    expect(apply.Config).toBe(Config)
     expect(historyToolsPlugin).toBe(compatibleSessionQueryTools)
     expect(plugin).toHaveBeenCalledTimes(2)
-    expect(plugin).toHaveBeenNthCalledWith(1, HandoffCompactionEngine, {
-      thresholdRatio: 0.9,
-      retainTokens: 16000,
-      maxTokens: 8192,
-      compactionRetries: 1,
-      maxOverflowRetries: 1,
-      auto: true,
-    })
+    expect(plugin.mock.calls[0]?.[0]).toBe(liveHandoffEngine)
+    const config = plugin.mock.calls[0]?.[1]
+    expect(config.thresholdRatio).toBe(0.9)
+    expect(config.maxTokens.get()).toBe(8192)
+    expect(config.retainTokens.get()).toBeUndefined()
     expect(plugin).toHaveBeenNthCalledWith(2, compatibleSessionQueryTools, {})
   })
 
   it('lets a retention ratio replace only the implicit absolute default', () => {
     const plugin = vi.fn()
     apply({ plugin } as never, { retainRatio: 0.25 })
-    expect(plugin.mock.calls[0]?.[1]).toMatchObject({ retainRatio: 0.25 })
-    expect(plugin.mock.calls[0]?.[1]).not.toHaveProperty('retainTokens')
+    expect(plugin.mock.calls[0]?.[1].retainRatio.get()).toBe(0.25)
+    expect(plugin.mock.calls[0]?.[1].retainTokens.get()).toBeUndefined()
   })
 })

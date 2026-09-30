@@ -10,7 +10,7 @@ const sharedIdentifiers = [
   'dsh plugin --profile web remove dsh-handoff-compaction',
   'dsh plugin --profile web add github:knighthongyu/dsh-handoff-compaction',
   'dsh plugin --profile web add ./dsh-handoff-compaction',
-  'dsh plugin --profile web add ./dsh-handoff-compaction-0.2.0-rc.2.tgz',
+  'dsh plugin --profile web add ./dsh-handoff-compaction-0.2.0-rc.3.tgz',
   'thresholdRatio: 0.8',
   'retainTokens: 16000',
   'maxTokens: 8192',
@@ -131,12 +131,16 @@ describe.each([
     const text = await readFile(resolve(filename), 'utf8')
 
     if (filename === 'README.md') {
-      expect(text).toMatch(/16K, 32K, or similarly constrained local models/i)
+      expect(text).toMatch(/small-context local models can use lower budgets/i)
+      expect(text).toMatch(/visually configure the compressed context budget/i)
+      expect(text).toContain('8192 + 16000 tokens (8k + 16k)')
       expect(text).toMatch(/does not enlarge a model's native context window/i)
       expect(text).toMatch(/goals, progress, decisions, constraints, next steps, and verification status/i)
       expect(text).toMatch(/searchable and readable on demand through the official SQLite history tools/i)
     } else {
-      expect(text).toMatch(/16K、32K 等小上下文窗口的本地模型/)
+      expect(text).toMatch(/小上下文窗口的本地模型/)
+      expect(text).toMatch(/压缩大小可视化配置/)
+      expect(text).toContain('8192 + 16000 token（8k + 16k）')
       expect(text).toMatch(/不扩大模型原生上下文窗口/)
       expect(text).toMatch(/目标、进展、决策、约束、下一步和验证状态/)
       expect(text).toMatch(/通过官方 SQLite 历史工具按需搜索和读取/)

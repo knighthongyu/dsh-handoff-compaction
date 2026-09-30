@@ -18,6 +18,8 @@ const ALLOWED_ARCHIVE_PATHS = new Set([
   'lib/index.d.ts', 'lib/index.d.ts.map', 'lib/index.js', 'lib/index.js.map',
   'lib/history-tools.d.ts', 'lib/history-tools.d.ts.map', 'lib/history-tools.js', 'lib/history-tools.js.map',
   'lib/session-events.d.ts', 'lib/session-events.d.ts.map', 'lib/session-events.js', 'lib/session-events.js.map',
+  ...['budget-form', 'client', 'config-schema', 'live-config'].flatMap((name) =>
+    ['d.ts', 'd.ts.map', 'js', 'js.map'].map((suffix) => `lib/${name}.${suffix}`)),
 ])
 const SCAN_EXCLUDED_DIRECTORIES = new Set(['node_modules', '.pnpm-store', '.pda', '.superpowers', '.git'])
 const INTENTIONAL_TEST_FIXTURES = new Set(['tests/fixtures/sessions/history.jsonl'])

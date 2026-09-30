@@ -2,11 +2,11 @@
 
 [中文说明](README.zh.md)
 
-> Context compression for small-context models: keep the task moving with a configurable token budget and searchable history.
+> Context compression for small-context models: visually configure the compressed context budget, default to an 8k handoff + 16k recent context, and keep full history searchable.
 
 `dsh-handoff-compaction` is a DSH context-compression plugin. It turns older conversation into a structured `# Context Handoff`, keeps recent messages in their original form, and lets the agent search and read the full history when it needs an earlier detail. Small-context models can continue long development and debugging sessions with the task's goals, progress, decisions, constraints, next steps, and verification status at hand.
 
-Set a fixed token budget for the summary and a retention budget for recent messages. The plugin compresses older context automatically near the configured threshold; `/compact` also lets you trigger it manually. It is especially useful for 16K, 32K, or similarly constrained local models after adjusting the budgets to fit their window.
+**You choose the compressed context budget.** Adjust the summary token limit and recent-message retention budget directly on the Web plugin detail page. Defaults are **8192 + 16000 tokens (8k + 16k)**, with Save, Restore defaults, and persistence across restarts. The plugin compresses older context automatically near the configured threshold; `/compact` also lets you trigger it manually. Small-context local models can use lower budgets, while larger windows can keep more recent conversation verbatim.
 
 ## What you get
 
@@ -14,7 +14,7 @@ The current task stays in context, and older details remain available through hi
 
 | What needs to survive | How the plugin preserves it |
 | --- | --- |
-| Configurable context budgets | `maxTokens` caps the summary output; `retainTokens` sets the recent raw-message retention budget. Adjust both to suit the model's context window. |
+| Visually configurable context size | Set the summary limit and recent-context budget on the plugin page; defaults are 8k + 16k. Saved budgets apply to future compactions and survive restarts. Use smaller budgets for small windows or keep more recent messages for larger ones. The configuration fields are `maxTokens` and `retainTokens`. |
 | Cache-friendly full-surface compaction | The summary request replays the complete **current conversation surface** with the same system prompt and tools, then appends the handoff instruction. It does not first truncate the prompt to the older portion being summarized. This keeps the existing prefix eligible for reuse by local providers that cannot reuse a shortened prompt; actual cache hits depend on the provider and can be checked through `cacheReadTokens`. |
 | Long-term memory without loss | Session events remain append-only. Facts hidden by compaction remain searchable and readable on demand through the official SQLite history tools. |
 | Task continuity | `Context Handoff` records what you are doing, what is complete, and what to do next, including exact facts and verification status. |
@@ -34,9 +34,9 @@ One plugin package covers all declared DSH versions; users install by package na
 
 | DSH version | Support and verification |
 | --- | --- |
-| `0.2.0-rc.2` | Supported; installation, Web/headless startup, compaction, and history tools verified in this update. |
-| `0.2.0-rc.1` | Supported; verified in the previous release. |
-| `0.1.7-rc.2` | Supported; installation, Web/headless startup, and history tools verified in the previous release. |
+| `0.2.0-rc.2` | Supported; visual save/reset/restart persistence, Web/headless installation and startup, compaction, and history tools verified. |
+| `0.2.0-rc.1` | Supported; visual save/reset/restart persistence and Web/headless installation and startup verified. |
+| `0.1.7-rc.2` | Supported; visual save/reset/restart persistence and Web/headless installation and startup verified. |
 | Other previously declared DSH 0.1 prereleases | Declared compatible; not individually rerun in this update. |
 
 DSH 0.1 peer range: `^0.1.1-rc.2 || ^0.1.2-rc.1 || ^0.1.5-rc.2 || ^0.1.7-alpha.2`.
@@ -82,6 +82,21 @@ maxOverflowRetries: 1
 auto: true
 ```
 
+### Visual context budget settings
+
+In the Web client, open **Plugins → dsh-handoff-compaction** in the sidebar. The plugin detail page lets you adjust:
+
+- **Handoff summary limit** defaults to **8192 tokens (8k)**.
+- **Recent context budget** defaults to **16000 tokens (16k)**.
+
+**Save** persists both budgets in the current profile for future compactions and restarts. **Restore defaults: 8k + 16k** fills the defaults; click Save to apply. Full history remains searchable, readable, and traceable.
+
+The summary limit must be a positive integer; recent retention must be a nonnegative integer. Whole messages and paired tool calls can exceed the retention budget. System prompts and tool definitions consume additional context, so reduce these budgets for small-window models and leave room for generation and system information.
+
+Saving switches a previous `retainRatio` configuration to absolute `retainTokens`. Existing `modelPolicies` still take precedence per model. The panel uses DSH's native permissions and revision conflict checks; read-only deployments cannot save.
+
+The visual page supports verified DSH versions `0.1.7-rc.2`, `0.2.0-rc.1`, and `0.2.0-rc.2`. Headless and earlier versions can edit `maxTokens` and `retainTokens` on the `handoff-compaction` entry in the current profile's `cordis.patch.yml`. The default Web path is `$DSH_HOME/profiles/web/cordis.patch.yml`; without `DSH_HOME`, the home directory is `~/.dsh`.
+
 ### Other package sources
 
 Every supported package source uses the same `dsh plugin --profile <profile> add <source>` interface. These Web examples show npm, GitHub, a local directory, and a packed tarball; substitute `headless` when installing into that profile:
@@ -90,7 +105,7 @@ Every supported package source uses the same `dsh plugin --profile <profile> add
 dsh plugin --profile web add dsh-handoff-compaction
 dsh plugin --profile web add github:knighthongyu/dsh-handoff-compaction
 dsh plugin --profile web add ./dsh-handoff-compaction
-dsh plugin --profile web add ./dsh-handoff-compaction-0.2.0-rc.2.tgz
+dsh plugin --profile web add ./dsh-handoff-compaction-0.2.0-rc.3.tgz
 ```
 
 ## Searchable history, not forgotten history

@@ -24,7 +24,7 @@ describe('published package surface', () => {
       keywords?: string[]
     }
 
-    expect(manifest.version).toBe('0.2.0-rc.2')
+    expect(manifest.version).toBe('0.2.0-rc.3')
     expect(manifest.license).toBe('MIT')
     expect(manifest.packageManager).toBe('pnpm@11.22.0')
     expect(manifest.repository).toEqual({
@@ -114,7 +114,9 @@ SOFTWARE.
     }
 
     expect(manifest.bin).toBeUndefined()
-    expect(manifest.dsh).toEqual({ bundle: { patch: './cordis.patch.yml' } })
+    expect(manifest.dsh).toEqual({ bundle: { patch: './cordis.patch.yml' }, client: {
+      platform: 'web', inject: ['@deepseek-ai/dsh-client-locale', '@deepseek-ai/dsh-client-ui-settings', '@deepseek-ai/dsh-client-ui-plugin-manager'],
+    } })
     for (const lifecycle of ['prepare', 'preinstall', 'install', 'postinstall']) {
       expect(manifest.scripts).not.toHaveProperty(lifecycle)
     }
@@ -127,7 +129,7 @@ SOFTWARE.
       devDependencies?: Record<string, string>
     }
 
-    expect(manifest.dependencies).toHaveProperty('@deepseek-ai/schemastery', '^3.18.1')
+    expect(manifest.dependencies).toHaveProperty('@deepseek-ai/schemastery', '^3.18.4')
     expect(manifest.dependencies).not.toHaveProperty('@deepseek-ai/dsh-tool-session-query')
     for (const dependency of [
       'js-yaml',
@@ -204,7 +206,7 @@ SOFTWARE.
     expect(paths).toContain('lib/history-tools.js')
     expect(paths).toContain('lib/index.d.ts')
     expect(
-      paths.filter((path) => /^lib\/(cli|preset-installer)/.test(path)),
+      paths.filter((path) => /^lib\/(cli|preset-installer)[./]/.test(path)),
     ).toEqual([])
     expect(paths.some((path) => /^(src|tests|\.pda|docs)\//.test(path))).toBe(false)
     expect(paths.some((path) => /(^|\/)(\.env|.*fixture.*|.*\.sqlite)$/.test(path))).toBe(false)

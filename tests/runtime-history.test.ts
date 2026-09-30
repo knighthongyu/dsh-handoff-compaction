@@ -15,7 +15,7 @@ import SessionStore, { SessionId } from '@deepseek-ai/dsh-session'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import ToolRuntime from '@deepseek-ai/dsh-tools'
 
-import apply, { HandoffCompactionEngine, historyToolsPlugin } from '../src/index.js'
+import apply, { HandoffCompactionEngine, historyToolsPlugin, liveHandoffEngine } from '../src/index.js'
 import {
   dshRequire,
   outputText,
@@ -103,7 +103,7 @@ describe('official history retrieval runtime', () => {
     const { default: SqliteSessionQuery } = await import(requireFromDshBase('@deepseek-ai/dsh-session-query-sqlite'))
     await ctx.plugin(SqliteSessionQuery, { path: ':memory:', openAt: 'first-search' })
     apply(ctx, { auto: false, retainTokens: 100 })
-    const engineRuntime = ctx.registry.get(HandoffCompactionEngine)
+    const engineRuntime = ctx.registry.get(liveHandoffEngine)
     const historyRuntime = ctx.registry.get(historyToolsPlugin)
     await Promise.all([
       ...Array.from(engineRuntime!.fibers, (fiber) => fiber.await()),

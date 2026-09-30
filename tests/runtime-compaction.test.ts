@@ -13,6 +13,8 @@ import LlmRuntime, {
 import SessionStore, { SessionId } from '@deepseek-ai/dsh-session'
 
 import { HandoffCompactionEngine } from '../src/handoff-engine.js'
+import { Config, liveHandoffEngine } from '../src/index.js'
+import type { LiveHandoffConfig } from '../src/live-config.js'
 import { HANDOFF_HEADINGS, handoffInstruction } from '../src/handoff-prompt.js'
 import { dshRequire } from './fixtures/sessions/runtime-helpers.js'
 
@@ -69,7 +71,7 @@ class SequencedSummaryAdapter extends LlmAdapter {
   }
 }
 
-async function setup(adapter: LlmAdapter) {
+async function setup(adapter: LlmAdapter, liveConfig?: LiveHandoffConfig) {
   const ctx = new Context()
   contexts.push(ctx)
   await ctx.plugin(LlmRuntime)
@@ -81,7 +83,8 @@ async function setup(adapter: LlmAdapter) {
   const { default: TokenMeter } = await import(dshRequire.resolve('@deepseek-ai/dsh-token-meter'))
   await ctx.plugin(TokenMeter)
   ctx.llm.registerAdapter(['runtime'], adapter)
-  await ctx.plugin(HandoffCompactionEngine, { auto: false, retainTokens: 100, maxTokens: 8192 })
+  if (liveConfig) await ctx.plugin(liveHandoffEngine, liveConfig)
+  else await ctx.plugin(HandoffCompactionEngine, { auto: false, retainTokens: 100, maxTokens: 8192 })
   return ctx
 }
 
@@ -188,6 +191,26 @@ const allNoneHandoff = HANDOFF_HEADINGS.map((heading, index) => (
 )).join('\n\n')
 
 describe('composed compaction runtime', () => {
+  it('uses edited native budget references on the next actual summary call', async () => {
+    const adapter = new SummaryAdapter([
+      { type: 'block-end', index: 0, block: { type: 'text', text: handoffText } },
+      { type: 'finish', reason: { kind: 'stop' } },
+    ])
+    const config = Config({ auto: false, maxTokens: 8192, retainTokens: 100 })
+    const ctx = await setup(adapter, config)
+    const engine = ctx.compaction as HandoffCompactionEngine
+    const { updateVolatile } = await import(dshRequire.resolve('@deepseek-ai/cosmokit'))
+    const edited = Config({ maxTokens: 4096, retainTokens: 50 })
+    updateVolatile(config.maxTokens, edited.maxTokens)
+    updateVolatile(config.retainTokens, edited.retainTokens)
+    expect(engine.config).toMatchObject({ maxTokens: 4096, retainTokens: 50 })
+    const { session, oldPrompt, toolResult } = populateSession(ctx, 'ORBIT-NEBULA-7319')
+    await engine.compactRegion(oldPrompt.seq, toolResult.seq,
+      { session, options: { provider: 'runtime', model: 'summary-model' } } as never,
+      new AbortController().signal)
+    expect(adapter.calls[0]?.maxTokens).toBe(4096)
+  })
+
   it('writes inherited checkpoint provenance while retaining the raw tail and source events', async () => {
     const adapter = new SummaryAdapter([
       { type: 'block-end', index: 0, block: { type: 'text', text: handoffText } },

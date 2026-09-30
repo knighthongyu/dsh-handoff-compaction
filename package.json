@@ -1,7 +1,7 @@
 {
   "name": "dsh-handoff-compaction",
-  "version": "0.2.0-rc.2",
-  "description": "DSH context compression for small-context models: configurable token budgets, structured handoffs, and searchable full history",
+  "version": "0.2.0-rc.3",
+  "description": "DSH context compression with visual token-budget settings: default 8k handoff + 16k recent context, adjustable for small-context models, with searchable full history",
   "type": "module",
   "packageManager": "pnpm@11.22.0",
   "engines": {
@@ -18,15 +18,27 @@
       "types": "./lib/handoff-engine.d.ts",
       "default": "./lib/handoff-engine.js"
     },
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./client": {
+      "types": "./lib/client.d.ts",
+      "default": "./lib/client.js"
+    }
   },
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-settings",
+        "@deepseek-ai/dsh-client-ui-plugin-manager"
+      ]
     }
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsc -p tsconfig.build.json && node scripts/build-client.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "smoke:dsh": "CI=true DSH_SMOKE=1 vitest run tests/dsh-install-smoke.test.ts --testTimeout=180000",
@@ -56,10 +68,12 @@
     "handoff",
     "session-history",
     "local-llm",
-    "small-context"
+    "small-context",
+    "token-budget",
+    "visual-configuration"
   ],
   "dependencies": {
-    "@deepseek-ai/schemastery": "^3.18.1"
+    "@deepseek-ai/schemastery": "^3.18.4"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "^4.0.1",
@@ -78,6 +92,11 @@
     "@deepseek-ai/cordis": "4.0.4",
     "@deepseek-ai/dsh": "0.2.0-rc.2",
     "@deepseek-ai/dsh-agent": "0.2.0-rc.2",
+    "@deepseek-ai/dsh-client-locale": "0.2.0-rc.2",
+    "@deepseek-ai/dsh-client-ui-plugin-manager": "0.2.0-rc.2",
+    "@deepseek-ai/dsh-client-ui-renderer": "0.2.0-rc.2",
+    "@deepseek-ai/dsh-client-ui-settings": "0.2.0-rc.2",
+    "@deepseek-ai/dsh-client-ui-slots": "0.2.0-rc.2",
     "@deepseek-ai/dsh-compaction-basic": "0.2.0-rc.2",
     "@deepseek-ai/dsh-invariants": "0.2.0-rc.2",
     "@deepseek-ai/dsh-llm": "0.2.0-rc.2",
@@ -87,6 +106,9 @@
     "@deepseek-ai/dsh-timeout": "0.2.0-rc.2",
     "@deepseek-ai/dsh-tools": "0.2.0-rc.2",
     "@types/node": "^24.0.0",
+    "@types/react": "18.3.28",
+    "esbuild": "0.28.2",
+    "react": "18.3.1",
     "typescript": "^5.9.2",
     "vitest": "^3.2.4"
   },
