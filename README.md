@@ -2,22 +2,22 @@
 
 [中文说明](README.zh.md)
 
-> Help 16K, 32K, and other small-context local models carry long DSH engineering sessions forward with confidence.
+> Context compression for small-context models: keep the task moving with a configurable token budget and searchable history.
 
-`dsh-handoff-compaction` does not enlarge a model's native context window. Instead, it turns aging conversation into an actionable, structured `# Context Handoff`, keeping the active context within a predictable, configurable budget. It preserves the recent raw working tail and leaves the complete history in a searchable SQLite session record.
+`dsh-handoff-compaction` is a DSH context-compression plugin. It turns older conversation into a structured `# Context Handoff`, keeps recent messages in their original form, and lets the agent search and read the full history when it needs an earlier detail. Small-context models can continue long development and debugging sessions with the task's goals, progress, decisions, constraints, next steps, and verification status at hand.
 
-It keeps DSH's native compaction transaction, `/compact` command, retries, and append-only session log, then mounts the official persistent history-retrieval package. It is for people running 16K, 32K, or similarly constrained local models who still need to sustain multi-turn development, debugging, and handoffs.
+Set a fixed token budget for the summary and a retention budget for recent messages. The plugin compresses older context automatically near the configured threshold; `/compact` also lets you trigger it manually. It is especially useful for 16K, 32K, or similarly constrained local models after adjusting the budgets to fit their window.
 
-## Why it works for small-context local models
+## What you get
 
-Small-context models do not usually lose capability first—they lose the thread of a long task. A basic summary can reduce a session to free-form prose. This plugin makes the operational facts of the work reviewable and reusable:
+The current task stays in context, and older details remain available through history tools:
 
 | What needs to survive | How the plugin preserves it |
 | --- | --- |
-| A predictable active context | Older content becomes a structured handoff, while the recent raw tail is retained according to `retainTokens`. The defaults retain `16000` raw tokens and cap the summary at `8192` tokens. |
+| Configurable context budgets | `maxTokens` caps the summary output; `retainTokens` sets the recent raw-message retention budget. Adjust both to suit the model's context window. |
 | Cache-friendly full-surface compaction | The summary request replays the complete **current conversation surface** with the same system prompt and tools, then appends the handoff instruction. It does not first truncate the prompt to the older portion being summarized. This keeps the existing prefix eligible for reuse by local providers that cannot reuse a shortened prompt; actual cache hits depend on the provider and can be checked through `cacheReadTokens`. |
 | Long-term memory without loss | Session events remain append-only. Facts hidden by compaction remain searchable and readable on demand through the official SQLite history tools. |
-| Engineering continuity | `Context Handoff` carries goals, progress, decisions, constraints, next steps, and verification status—not just a generic narrative summary. |
+| Task continuity | `Context Handoff` records what you are doing, what is complete, and what to do next, including exact facts and verification status. |
 
 ```text
 Long session
@@ -26,9 +26,22 @@ Long session
   → full history is retrieved on demand when an older fact matters
 ```
 
-This is neither magic context expansion nor automatic RAG. It is a clear strategy for bounding the active context while keeping recoverable history available through tools.
+The plugin does not enlarge a model's native context window. The budgets control summary output and recent-message retention, rather than an exact total request size: system prompts, tool definitions, complete messages, and tool-call pairing also use space. Leave room for these when configuring a small window.
 
-Declared compatibility: the previously supported DSH 0.1 prerelease ranges (`^0.1.1-rc.2 || ^0.1.2-rc.1 || ^0.1.5-rc.2 || ^0.1.7-alpha.2`, including `0.1.7-rc.2`) and DSH `0.2.0-rc.1`; Node.js `^22.19.0 || >=24.0.0`. This single plugin package does not require users to choose a plugin version by DSH version. This change was verified on DSH `0.1.7-rc.2` and `0.2.0-rc.1` only; the other declared versions were not rerun in this change.
+## DSH compatibility
+
+One plugin package covers all declared DSH versions; users install by package name without choosing a separate plugin build.
+
+| DSH version | Support and verification |
+| --- | --- |
+| `0.2.0-rc.2` | Supported; installation, Web/headless startup, compaction, and history tools verified in this update. |
+| `0.2.0-rc.1` | Supported; verified in the previous release. |
+| `0.1.7-rc.2` | Supported; installation, Web/headless startup, and history tools verified in the previous release. |
+| Other previously declared DSH 0.1 prereleases | Declared compatible; not individually rerun in this update. |
+
+DSH 0.1 peer range: `^0.1.1-rc.2 || ^0.1.2-rc.1 || ^0.1.5-rc.2 || ^0.1.7-alpha.2`.
+
+Node.js: `^22.19.0 || >=24.0.0`. The list separates declared support from actual verification; future DSH releases will be checked as they arrive.
 
 ## Install
 
@@ -77,7 +90,7 @@ Every supported package source uses the same `dsh plugin --profile <profile> add
 dsh plugin --profile web add dsh-handoff-compaction
 dsh plugin --profile web add github:knighthongyu/dsh-handoff-compaction
 dsh plugin --profile web add ./dsh-handoff-compaction
-dsh plugin --profile web add ./dsh-handoff-compaction-0.2.0-rc.1.tgz
+dsh plugin --profile web add ./dsh-handoff-compaction-0.2.0-rc.2.tgz
 ```
 
 ## Searchable history, not forgotten history
