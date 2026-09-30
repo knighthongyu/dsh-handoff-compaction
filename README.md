@@ -1,8 +1,8 @@
 # DSH Handoff Compaction
 
-[中文说明](README.zh.md)
+Context compression for small-context models: visually configure the compressed context budget, default to an 8k handoff + 16k recent context, and keep full history searchable.
 
-> Context compression for small-context models: visually configure the compressed context budget, default to an 8k handoff + 16k recent context, and keep full history searchable.
+[中文说明](README.zh.md)
 
 `dsh-handoff-compaction` is a DSH context-compression plugin. It turns older conversation into a structured `# Context Handoff`, keeps recent messages in their original form, and lets the agent search and read the full history when it needs an earlier detail. Small-context models can continue long development and debugging sessions with the task's goals, progress, decisions, constraints, next steps, and verification status at hand.
 
