@@ -24,7 +24,7 @@ describe('published package surface', () => {
       keywords?: string[]
     }
 
-    expect(manifest.version).toBe('0.2.0-rc.4')
+    expect(manifest.version).toBe('0.2.0-rc.5')
     expect(manifest.license).toBe('MIT')
     expect(manifest.packageManager).toBe('pnpm@11.22.0')
     expect(manifest.repository).toEqual({
@@ -129,7 +129,7 @@ SOFTWARE.
       devDependencies?: Record<string, string>
     }
 
-    expect(manifest.dependencies).toHaveProperty('@deepseek-ai/schemastery', '^3.18.4')
+    expect(manifest.dependencies).toHaveProperty('@deepseek-ai/schemastery', '^3.18.4 || ~3.18.5-alpha.1')
     expect(manifest.dependencies).not.toHaveProperty('@deepseek-ai/dsh-tool-session-query')
     for (const dependency of [
       'js-yaml',
@@ -142,7 +142,7 @@ SOFTWARE.
     }
   })
 
-  it('declares one peer range spanning prior DSH 0.1 and both DSH 0.2 release candidates', async () => {
+  it('declares one peer range spanning prior DSH versions and DSH 0.2.1 alpha', async () => {
     const manifest = JSON.parse(await readFile(resolve('package.json'), 'utf8')) as {
       peerDependencies?: Record<string, string>
       devDependencies?: Record<string, string>
@@ -154,7 +154,6 @@ SOFTWARE.
       '@deepseek-ai/dsh',
       '@deepseek-ai/dsh-agent',
       '@deepseek-ai/dsh-compaction-basic',
-      '@deepseek-ai/dsh-invariants',
       '@deepseek-ai/dsh-llm',
       '@deepseek-ai/dsh-session',
       '@deepseek-ai/dsh-session-query',
@@ -162,10 +161,13 @@ SOFTWARE.
       '@deepseek-ai/dsh-timeout',
       '@deepseek-ai/dsh-tools',
     ]) {
-      expect(peers[dependency]).toBe('^0.1.1-rc.2 || ^0.1.2-rc.1 || ^0.1.5-rc.2 || ^0.1.7-alpha.2 || 0.2.0-rc.1 || 0.2.0-rc.2')
-      expect(dev[dependency]).toBe('0.2.0-rc.2')
+      expect(peers[dependency]).toBe('^0.1.1-rc.2 || ^0.1.2-rc.1 || ^0.1.5-rc.2 || ^0.1.7-alpha.2 || 0.2.0-rc.1 || 0.2.0-rc.2 || 0.2.1-alpha.1')
+      expect(dev[dependency]).toBe('0.2.1-alpha.1')
     }
-    expect(dev['@deepseek-ai/cordis']).toBe('4.0.4')
+    expect(dev['@deepseek-ai/cordis']).toBe('4.0.5-alpha.1')
+    expect(peers['@deepseek-ai/cordis']).toBe('^4.0.1 || ~4.0.5-alpha.1')
+    expect(peers).not.toHaveProperty('@deepseek-ai/dsh-invariants')
+    expect(dev).not.toHaveProperty('@deepseek-ai/dsh-invariants')
     expect(dev).not.toHaveProperty('@deepseek-ai/dsh-agent-loop-testkit')
   })
 

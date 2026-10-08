@@ -285,3 +285,11 @@ minimumReleaseAgeExclude:
   - '@deepseek-ai/dsh-workspace-changes@0.2.0-rc.1'
   - '@deepseek-ai/dsh-workspace@0.2.0-rc.1'
   - '@deepseek-ai/dsh@0.2.0-rc.1'
+
+# Office conversion binaries are unrelated to compaction compatibility tests.
+ignoredOptionalDependencies:
+  - "@deepseek-ai/libreoffice-kit-*"
+
+# Match the schema runtime provided by the DSH version used for development.
+overrides:
+  "@deepseek-ai/schemastery": "3.18.5-alpha.1"

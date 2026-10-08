@@ -26,7 +26,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        dsh-version: [0.1.7-rc.2, 0.2.0-rc.1]
+        dsh-version: [0.1.7-rc.2, 0.2.0-rc.1, 0.2.0-rc.2]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -40,5 +40,8 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
-      - run: npm install --prefix "$RUNNER_TEMP/dsh-previous" --ignore-scripts --no-audit --no-fund @deepseek-ai/dsh@${{ matrix.dsh-version }}
+      - run: |
+          mkdir -p "$RUNNER_TEMP/dsh-previous"
+          printf 'ignoredOptionalDependencies:\n  - "@deepseek-ai/libreoffice-kit-*"\n' > "$RUNNER_TEMP/dsh-previous/pnpm-workspace.yaml"
+          pnpm --dir "$RUNNER_TEMP/dsh-previous" add --ignore-scripts @deepseek-ai/dsh@${{ matrix.dsh-version }}
       - run: DSH_SMOKE_DSH_BIN="$RUNNER_TEMP/dsh-previous/node_modules/.bin/dsh" node scripts/verify-release.mjs

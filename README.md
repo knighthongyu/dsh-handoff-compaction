@@ -34,10 +34,15 @@ One plugin package covers all declared DSH versions; users install by package na
 
 | DSH version | Support and verification |
 | --- | --- |
+| `0.2.1-alpha.1` | Supported; Web/headless installation and startup, compaction, history retrieval, live budget updates, and settings API save/restart persistence verified in this update. |
 | `0.2.0-rc.2` | Supported; visual save/reset/restart persistence, Web/headless installation and startup, compaction, and history tools verified. |
 | `0.2.0-rc.1` | Supported; visual save/reset/restart persistence and Web/headless installation and startup verified. |
 | `0.1.7-rc.2` | Supported; visual save/reset/restart persistence and Web/headless installation and startup verified. |
 | Other previously declared DSH 0.1 prereleases | Declared compatible; not individually rerun in this update. |
+
+The newest published DSH version, `0.2.1-alpha.1`, is on the npm `alpha` tag; `latest` currently points to `0.2.0-rc.2`. The plugin supports both channels with the same package. The removed invariant diagnostic module is no longer a plugin dependency.
+
+Budget saving and restart persistence on the newest DSH were verified through the settings API. Browser tooling failed during this update, so click-through UI verification on `0.2.1-alpha.1` remains unverified.
 
 DSH 0.1 peer range: `^0.1.1-rc.2 || ^0.1.2-rc.1 || ^0.1.5-rc.2 || ^0.1.7-alpha.2`.
 
@@ -95,7 +100,7 @@ The summary limit must be a positive integer; recent retention must be a nonnega
 
 Saving switches a previous `retainRatio` configuration to absolute `retainTokens`. Existing `modelPolicies` still take precedence per model. The panel uses DSH's native permissions and revision conflict checks; read-only deployments cannot save.
 
-The visual page supports verified DSH versions `0.1.7-rc.2`, `0.2.0-rc.1`, and `0.2.0-rc.2`. Headless and earlier versions can edit `maxTokens` and `retainTokens` on the `handoff-compaction` entry in the current profile's `cordis.patch.yml`. The default Web path is `$DSH_HOME/profiles/web/cordis.patch.yml`; without `DSH_HOME`, the home directory is `~/.dsh`.
+The visual page supports DSH versions `0.1.7-rc.2`, `0.2.0-rc.1`, `0.2.0-rc.2`, and `0.2.1-alpha.1`. Headless and earlier versions can edit `maxTokens` and `retainTokens` on the `handoff-compaction` entry in the current profile's `cordis.patch.yml`. The default Web path is `$DSH_HOME/profiles/web/cordis.patch.yml`; without `DSH_HOME`, the home directory is `~/.dsh`.
 
 ### Other package sources
 
@@ -105,7 +110,7 @@ Every supported package source uses the same `dsh plugin --profile <profile> add
 dsh plugin --profile web add dsh-handoff-compaction
 dsh plugin --profile web add github:knighthongyu/dsh-handoff-compaction
 dsh plugin --profile web add ./dsh-handoff-compaction
-dsh plugin --profile web add ./dsh-handoff-compaction-0.2.0-rc.4.tgz
+dsh plugin --profile web add ./dsh-handoff-compaction-0.2.0-rc.5.tgz
 ```
 
 ## Searchable history, not forgotten history
