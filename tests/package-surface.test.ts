@@ -24,7 +24,7 @@ describe('published package surface', () => {
       keywords?: string[]
     }
 
-    expect(manifest.version).toBe('0.2.0-rc.5')
+    expect(manifest.version).toBe('0.2.0-rc.6')
     expect(manifest.license).toBe('MIT')
     expect(manifest.packageManager).toBe('pnpm@11.22.0')
     expect(manifest.repository).toEqual({
@@ -161,8 +161,8 @@ SOFTWARE.
       '@deepseek-ai/dsh-timeout',
       '@deepseek-ai/dsh-tools',
     ]) {
-      expect(peers[dependency]).toBe('^0.1.1-rc.2 || ^0.1.2-rc.1 || ^0.1.5-rc.2 || ^0.1.7-alpha.2 || 0.2.0-rc.1 || 0.2.0-rc.2 || 0.2.1-alpha.1')
-      expect(dev[dependency]).toBe('0.2.1-alpha.1')
+      expect(peers[dependency]).toBe('^0.1.1-rc.2 || ^0.1.2-rc.1 || ^0.1.5-rc.2 || ^0.1.7-alpha.2 || 0.2.0-rc.1 || 0.2.0-rc.2 || 0.2.1-alpha.1 || 0.2.1-alpha.2')
+      expect(dev[dependency]).toBe('0.2.1-alpha.2')
     }
     expect(dev['@deepseek-ai/cordis']).toBe('4.0.5-alpha.1')
     expect(peers['@deepseek-ai/cordis']).toBe('^4.0.1 || ~4.0.5-alpha.1')

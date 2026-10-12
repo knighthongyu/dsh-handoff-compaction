@@ -26,7 +26,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        dsh-version: [0.1.7-rc.2, 0.2.0-rc.1, 0.2.0-rc.2]
+        dsh-version: [0.1.7-rc.2, 0.2.0-rc.1, 0.2.0-rc.2, 0.2.1-alpha.1]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
