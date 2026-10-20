@@ -32,7 +32,10 @@
 
 | DSH 版本 | 支持与验证情况 |
 | --- | --- |
-| `0.2.1-alpha.3` | 支持；本次验证 Web/headless 安装启动、压缩、历史查询、预算热更新，以及配置接口保存与重启保留。 |
+| `0.2.1-rc.2` | 支持；本次验证 Web/headless 安装启动、压缩、历史查询、预算热更新，以及配置接口保存与重启保留。 |
+| `0.2.1-rc.1` | 支持；CI 验证 Web/headless 安装启动。 |
+| `0.2.1-alpha.4`、`0.2.1-alpha.5` | 声明兼容；本次未逐一实测。 |
+| `0.2.1-alpha.3` | 支持；此前验证 Web/headless 安装启动、压缩、历史查询、预算热更新，以及配置接口保存与重启保留。 |
 | `0.2.1-alpha.2` | 支持；此前验证 Web/headless 安装启动、压缩、历史查询、预算热更新，以及配置接口保存与重启保留。 |
 | `0.2.1-alpha.1` | 支持；此前验证 Web/headless 安装启动、压缩、历史查询、预算热更新，以及配置接口保存与重启保留。 |
 | `0.2.0-rc.2` | 支持；此前验证可视化保存、恢复默认、重启保留、Web/headless 安装启动，以及压缩和历史查询工具。 |
@@ -40,9 +43,9 @@
 | `0.1.7-rc.2` | 支持；此前验证可视化保存、恢复默认、重启保留与 Web/headless 安装启动。 |
 | 此前声明支持的其他 DSH 0.1 预发布版本 | 声明兼容；本次未逐一重新验证。 |
 
-截至 2026-10-15，最新已发布版本 `0.2.1-alpha.3` 位于 npm 的 `alpha` 标签；`latest` 当前仍指向 `0.2.0-rc.2`。插件同时兼容这两个发布通道，用户无需切换插件包。新版已移除的 invariant 诊断模块不再作为插件依赖。
+截至 2026-10-20，npm 的 `latest` 和 `next` 均指向 `0.2.1-rc.2`，`alpha` 指向 `0.2.1-alpha.5`。插件使用同一个包兼容这些发布通道。`engines.dsh` 与 DSH peer 范围保持一致，供新版插件管理器判断兼容性。新版已移除的 invariant 诊断模块不再作为插件依赖。
 
-alpha 版本的预算保存与重启保留通过配置接口验证，页面点击交互未在本次更新中重新实测。
+新版的预算保存与重启保留通过配置接口验证，页面点击交互未在本次更新中重新实测。
 
 DSH 0.1 peer 范围：`^0.1.1-rc.2 || ^0.1.2-rc.1 || ^0.1.5-rc.2 || ^0.1.7-alpha.2`。
 
@@ -100,7 +103,7 @@ Web 界面打开左侧 **插件 → dsh-handoff-compaction**，在插件详情�
 
 如果原配置使用 `retainRatio`，保存此面板会切换为固定的 `retainTokens`。配置文件中的 `modelPolicies` 按模型覆盖仍优先于通用预算。面板接入 DSH 原生权限和配置冲突检查；部署不允许配置写入时显示只读。
 
-可视化配置支持 DSH `0.1.7-rc.2`、`0.2.0-rc.1`、`0.2.0-rc.2`、`0.2.1-alpha.1`、`0.2.1-alpha.2`、`0.2.1-alpha.3`。Headless 或较早版本可在当前 profile 的 `cordis.patch.yml` 调整 `handoff-compaction` 条目的 `maxTokens`、`retainTokens`；默认 Web 文件为 `$DSH_HOME/profiles/web/cordis.patch.yml`，未设置 `DSH_HOME` 时使用 `~/.dsh`。
+可视化配置支持 DSH `0.1.7-rc.2`、`0.2.0-rc.1`、`0.2.0-rc.2`、`0.2.1-alpha.1`、`0.2.1-alpha.2`、`0.2.1-alpha.3`、`0.2.1-alpha.4`、`0.2.1-alpha.5`、`0.2.1-rc.1`、`0.2.1-rc.2`。Headless 或较早版本可在当前 profile 的 `cordis.patch.yml` 调整 `handoff-compaction` 条目的 `maxTokens`、`retainTokens`；默认 Web 文件为 `$DSH_HOME/profiles/web/cordis.patch.yml`，未设置 `DSH_HOME` 时使用 `~/.dsh`。
 
 ### 其他包来源
 
@@ -110,7 +113,7 @@ Web 界面打开左侧 **插件 → dsh-handoff-compaction**，在插件详情�
 dsh plugin --profile web add dsh-handoff-compaction
 dsh plugin --profile web add github:knighthongyu/dsh-handoff-compaction
 dsh plugin --profile web add ./dsh-handoff-compaction
-dsh plugin --profile web add ./dsh-handoff-compaction-0.2.0-rc.7.tgz
+dsh plugin --profile web add ./dsh-handoff-compaction-0.2.0-rc.8.tgz
 ```
 
 ## 可搜索的历史，而不是被遗忘的历史
