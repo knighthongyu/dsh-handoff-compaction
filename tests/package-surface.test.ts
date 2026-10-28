@@ -24,7 +24,7 @@ describe('published package surface', () => {
       keywords?: string[]
     }
 
-    expect(manifest.version).toBe('0.2.0-rc.8')
+    expect(manifest.version).toBe('0.2.0-rc.9')
     expect(manifest.license).toBe('MIT')
     expect(manifest.packageManager).toBe('pnpm@11.22.0')
     expect(manifest.repository).toEqual({
@@ -129,7 +129,7 @@ SOFTWARE.
       devDependencies?: Record<string, string>
     }
 
-    expect(manifest.dependencies).toHaveProperty('@deepseek-ai/schemastery', '^3.18.4 || ~3.18.5-alpha.1')
+    expect(manifest.dependencies).toHaveProperty('@deepseek-ai/schemastery', '^3.18.4 || ~3.18.5-alpha.1 || ~3.18.6-alpha.1')
     expect(manifest.dependencies).not.toHaveProperty('@deepseek-ai/dsh-tool-session-query')
     for (const dependency of [
       'js-yaml',
@@ -162,12 +162,12 @@ SOFTWARE.
       '@deepseek-ai/dsh-timeout',
       '@deepseek-ai/dsh-tools',
     ]) {
-      expect(peers[dependency]).toBe('^0.1.1-rc.2 || ^0.1.2-rc.1 || ^0.1.5-rc.2 || ^0.1.7-alpha.2 || 0.2.0-rc.1 || 0.2.0-rc.2 || 0.2.1-alpha.1 || 0.2.1-alpha.2 || 0.2.1-alpha.3 || 0.2.1-alpha.4 || 0.2.1-alpha.5 || 0.2.1-rc.1 || 0.2.1-rc.2')
-      expect(dev[dependency]).toBe('0.2.1-rc.2')
+      expect(peers[dependency]).toBe('^0.1.1-rc.2 || ^0.1.2-rc.1 || ^0.1.5-rc.2 || ^0.1.7-alpha.2 || 0.2.0-rc.1 || 0.2.0-rc.2 || 0.2.1-alpha.1 || 0.2.1-alpha.2 || 0.2.1-alpha.3 || 0.2.1-alpha.4 || 0.2.1-alpha.5 || 0.2.1-rc.1 || 0.2.1-rc.2 || 0.2.1-rc.3 || 0.2.1-rc.4 || 0.2.2-alpha.2')
+      expect(dev[dependency]).toBe('0.2.2-alpha.2')
     }
     expect(manifest.engines?.dsh).toBe(peers['@deepseek-ai/dsh'])
-    expect(dev['@deepseek-ai/cordis']).toBe('4.0.5')
-    expect(peers['@deepseek-ai/cordis']).toBe('^4.0.1 || ~4.0.5-alpha.1')
+    expect(dev['@deepseek-ai/cordis']).toBe('4.0.6-alpha.1')
+    expect(peers['@deepseek-ai/cordis']).toBe('^4.0.1 || ~4.0.5-alpha.1 || ~4.0.6-alpha.1')
     expect(peers).not.toHaveProperty('@deepseek-ai/dsh-invariants')
     expect(dev).not.toHaveProperty('@deepseek-ai/dsh-invariants')
     expect(dev).not.toHaveProperty('@deepseek-ai/dsh-agent-loop-testkit')

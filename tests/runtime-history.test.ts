@@ -32,6 +32,8 @@ async function mountRuntimeDependencies(ctx: Context): Promise<void> {
   await ctx.plugin(SessionStore)
   await ctx.plugin(SystemPrompt)
   await ctx.plugin(ToolRuntime)
+  const NativeExecutor = await import(requireFromDshBase('@deepseek-ai/dsh-tool-executor-native'))
+  await ctx.plugin(NativeExecutor)
   await ctx.plugin(AgentRegistry)
 }
 
@@ -179,56 +181,79 @@ describe('official history retrieval runtime', () => {
       'session_event_read',
     ]))
 
-    const search = await ctx.tools.execute({
-      callId: ToolCallId('history-search'),
-      name: 'session_event_search',
-      arguments: { session_id: target.id, query: fixture.exactFact },
+    const toolSet = await ctx.tools.resolve({
+      agent: callerAgent,
+      modelSelection: { provider: 'history-runtime', model: 'summary-model' },
+      signal,
+    })
+    try {
+      const batch = await ctx.tools.execute({
+        calls: [
+          { type: 'tool-call', id: ToolCallId('session-search'), name: 'session_search', arguments: JSON.stringify({ query: fixture.exactFact }) },
+          { type: 'tool-call', id: ToolCallId('session-trace'), name: 'session_trace', arguments: JSON.stringify({ session_id: target.id }) },
+        ],
+        agent: callerAgent,
+        toolSet,
+        signal,
+      })
+      expect(batch.results.map(({ callId }) => callId)).toEqual(['session-search', 'session-trace'])
+      for (const { result } of batch.results) expect(result.isError).toBe(false)
+      expect(outputText(batch.results[0]!.result)).toContain(fixture.exactFact)
+      expect(outputText(batch.results[1]!.result)).toContain(target.id)
+    } finally {
+      toolSet.dispose()
+    }
+
+    const searchBatch = await ctx.tools.execute({
+      calls: [{ type: 'tool-call', id: ToolCallId('history-search'), name: 'session_event_search', arguments: JSON.stringify({ session_id: target.id, query: fixture.exactFact }) }],
       agent: callerAgent,
       signal,
     })
+    expect(searchBatch.results).toHaveLength(1)
+    const search = searchBatch.results[0]!.result
     expect(search.isError).toBe(false)
     expect(outputText(search)).toContain(fixture.exactFact)
     expect(outputText(search)).toContain(`seq ${factEvent.seq}`)
 
-    const currentSearch = await ctx.tools.execute({
-      callId: ToolCallId('history-current-search'),
-      name: 'session_event_search',
-      arguments: { query: 'CURRENT-SESSION-BOUNDARY-FACT' },
+    const currentSearchBatch = await ctx.tools.execute({
+      calls: [{ type: 'tool-call', id: ToolCallId('history-current-search'), name: 'session_event_search', arguments: JSON.stringify({ query: 'CURRENT-SESSION-BOUNDARY-FACT' }) }],
       agent: callerAgent,
       signal,
     })
+    expect(currentSearchBatch.results).toHaveLength(1)
+    const currentSearch = currentSearchBatch.results[0]!.result
     expect(currentSearch.isError).toBe(false)
     expect(outputText(currentSearch)).toContain('CURRENT-SESSION-BOUNDARY-FACT')
 
-    const read = await ctx.tools.execute({
-      callId: ToolCallId('history-read'),
-      name: 'session_event_read',
-      arguments: { session_id: target.id, seq: factEvent.seq },
+    const readBatch = await ctx.tools.execute({
+      calls: [{ type: 'tool-call', id: ToolCallId('history-read'), name: 'session_event_read', arguments: JSON.stringify({ session_id: target.id, seq: factEvent.seq }) }],
       agent: callerAgent,
       signal,
     })
+    expect(readBatch.results).toHaveLength(1)
+    const read = readBatch.results[0]!.result
     expect(read.isError).toBe(false)
     expect(outputText(read)).toContain(fixture.exactFact)
 
-    const trace = await ctx.tools.execute({
-      callId: ToolCallId('history-trace'),
-      name: 'session_event_trace',
-      arguments: { session_id: target.id, seq: factEvent.seq },
+    const traceBatch = await ctx.tools.execute({
+      calls: [{ type: 'tool-call', id: ToolCallId('history-trace'), name: 'session_event_trace', arguments: JSON.stringify({ session_id: target.id, seq: factEvent.seq }) }],
       agent: callerAgent,
       signal,
     })
+    expect(traceBatch.results).toHaveLength(1)
+    const trace = traceBatch.results[0]!.result
     expect(trace.isError).toBe(false)
     expect(outputText(trace)).toContain(`Replaced by: ${checkpoint.seq}`)
     expect(outputText(trace).toLowerCase()).toContain('replacement')
 
     const outside = ctx.sessions.create(SessionId('outside-caller'), { meta: { cwd: '/tmp/outside-workspace' } })
-    const denied = await ctx.tools.execute({
-      callId: ToolCallId('history-denied'),
-      name: 'session_event_read',
-      arguments: { session_id: target.id, seq: factEvent.seq },
+    const deniedBatch = await ctx.tools.execute({
+      calls: [{ type: 'tool-call', id: ToolCallId('history-denied'), name: 'session_event_read', arguments: JSON.stringify({ session_id: target.id, seq: factEvent.seq }) }],
       agent: { session: outside, options: {} } as never,
       signal,
     })
+    expect(deniedBatch.results).toHaveLength(1)
+    const denied = deniedBatch.results[0]!.result
     expect(denied.isError).toBe(true)
     expect(denied.error).toMatchObject({
       info: { code: 'SESSION_QUERY_TOOL_UNAUTHORIZED' },
