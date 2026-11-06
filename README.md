@@ -34,7 +34,9 @@ One plugin package covers all declared DSH versions; users install by package na
 
 | DSH version | Support and verification |
 | --- | --- |
-| `0.2.2-alpha.2` | Supported; Web/headless installation and startup, compaction, history retrieval, live budget updates, and settings API save/restart persistence verified in this update. |
+| `0.2.2-rc.1` | Supported. The main release gate targets this version. |
+| `0.2.2-alpha.3`, `0.2.1-rc.5` | Supported. The compatibility matrix covers Web and headless install, startup, and removal. |
+| `0.2.2-alpha.2` | Supported. Previous verification covered Web and headless installation and startup, compaction, history retrieval, live budget updates, and settings API save and restart persistence. |
 | `0.2.1-rc.3`, `0.2.1-rc.4` | Supported; Web/headless installation and startup verified in CI. |
 | `0.2.1-rc.2` | Supported; Web/headless installation and startup, compaction, history retrieval, live budget updates, and settings API save/restart persistence verified previously. |
 | `0.2.1-rc.1` | Supported; Web/headless installation and startup verified in CI. |
@@ -47,13 +49,11 @@ One plugin package covers all declared DSH versions; users install by package na
 | `0.1.7-rc.2` | Supported; visual save/reset/restart persistence and Web/headless installation and startup verified. |
 | Other previously declared DSH 0.1 prereleases | Declared compatible; not individually rerun in this update. |
 
-As of 2026-10-28, npm `latest` points to `0.2.1-rc.2`, `next` to `0.2.1-rc.4`, and `alpha` to `0.2.2-alpha.2`. The same plugin package supports these channels. `engines.dsh` matches the DSH peer range so newer plugin managers can check compatibility. The removed invariant diagnostic module is no longer a plugin dependency.
-
-Budget saving and restart persistence on newer versions were verified through the settings API. Click-through UI interaction was not rerun in this update.
+As of 2026-11-06, the npm tags `latest` and `next` both point to `0.2.2-rc.1`, and `alpha` points to `0.2.2-alpha.3`. The same plugin package supports these channels. `engines.dsh` matches the DSH peer range so plugin managers can check compatibility. [DSH on npm](https://www.npmjs.com/package/%40deepseek-ai/dsh?activeTab=versions)
 
 DSH 0.1 peer range: `^0.1.1-rc.2 || ^0.1.2-rc.1 || ^0.1.5-rc.2 || ^0.1.7-alpha.2`.
 
-Plugin Node.js range: `^22.19.0 || >=24.0.0`. DSH `0.2.2-alpha.2` requires **Node.js >=24.9.0**; satisfy that higher minimum when using this host version. The list separates declared support from actual verification; future DSH releases will be checked as they arrive.
+The plugin's Node.js range is `^22.19.0 || >=24.0.0`. Use **Node.js 24.9.0 or later** with the supported DSH 0.2.2 releases. [DSH 0.2.2 release notes](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.2-rc.1)
 
 ## Install
 
@@ -107,7 +107,7 @@ The summary limit must be a positive integer; recent retention must be a nonnega
 
 Saving switches a previous `retainRatio` configuration to absolute `retainTokens`. Existing `modelPolicies` still take precedence per model. The panel uses DSH's native permissions and revision conflict checks; read-only deployments cannot save.
 
-The visual page supports DSH versions `0.1.7-rc.2`, `0.2.0-rc.1`, `0.2.0-rc.2`, `0.2.1-alpha.1`, `0.2.1-alpha.2`, `0.2.1-alpha.3`, `0.2.1-alpha.4`, `0.2.1-alpha.5`, `0.2.1-rc.1`, `0.2.1-rc.2`, `0.2.1-rc.3`, `0.2.1-rc.4`, and `0.2.2-alpha.2`. Headless and earlier versions can edit `maxTokens` and `retainTokens` on the `handoff-compaction` entry in the current profile's `cordis.patch.yml`. The default Web path is `$DSH_HOME/profiles/web/cordis.patch.yml`; without `DSH_HOME`, the home directory is `~/.dsh`.
+The visual page supports every version named in the compatibility table, from `0.1.7-rc.2` through `0.2.2-rc.1`. In Headless or on earlier versions, edit `maxTokens` and `retainTokens` on the `handoff-compaction` entry in the current profile's `cordis.patch.yml`. The default Web path is `$DSH_HOME/profiles/web/cordis.patch.yml`; without `DSH_HOME`, the home directory is `~/.dsh`.
 
 ### Other package sources
 
@@ -117,7 +117,7 @@ Every supported package source uses the same `dsh plugin --profile <profile> add
 dsh plugin --profile web add dsh-handoff-compaction
 dsh plugin --profile web add github:knighthongyu/dsh-handoff-compaction
 dsh plugin --profile web add ./dsh-handoff-compaction
-dsh plugin --profile web add ./dsh-handoff-compaction-0.2.0-rc.9.tgz
+dsh plugin --profile web add ./dsh-handoff-compaction-0.2.0-rc.10.tgz
 ```
 
 ## Searchable history, not forgotten history
@@ -181,4 +181,4 @@ pnpm smoke:dsh
 pnpm verify:release
 ```
 
-`check:package` creates a temporary real tarball, prints its filename, SHA-256, and file list, then removes it. `verify:release` combines the typecheck/build/test, archive audit, and isolated Web/headless smoke gates. These are contributor checks only; normal users still install with the standard single `dsh plugin --profile <profile> add <source>` command above.
+`check:package` creates a temporary tarball, prints its filename, SHA-256, and file list, then removes it. `verify:release` type checks and builds against DSH `0.2.2-rc.1`, runs compaction, history retrieval, and live budget integration tests, audits the archive, and exercises installation, startup, and removal in isolated Web and headless profiles. The compatibility matrix runs the profile smoke checks against other selected DSH versions.

@@ -32,7 +32,9 @@
 
 | DSH 版本 | 支持与验证情况 |
 | --- | --- |
-| `0.2.2-alpha.2` | 支持；本次验证 Web/headless 安装启动、压缩、历史查询、预算热更新，以及配置接口保存与重启保留。 |
+| `0.2.2-rc.1` | 支持。主发布检查使用此版本。 |
+| `0.2.2-alpha.3`、`0.2.1-rc.5` | 支持。兼容性矩阵覆盖 Web 和 headless 的安装、启动与卸载。 |
+| `0.2.2-alpha.2` | 支持。此前验证了 Web 和 headless 的安装与启动、压缩、历史查询、预算热更新，以及通过配置接口保存并在重启后保留设置。 |
 | `0.2.1-rc.3`、`0.2.1-rc.4` | 支持；CI 验证 Web/headless 安装启动。 |
 | `0.2.1-rc.2` | 支持；此前验证 Web/headless 安装启动、压缩、历史查询、预算热更新，以及配置接口保存与重启保留。 |
 | `0.2.1-rc.1` | 支持；CI 验证 Web/headless 安装启动。 |
@@ -45,13 +47,11 @@
 | `0.1.7-rc.2` | 支持；此前验证可视化保存、恢复默认、重启保留与 Web/headless 安装启动。 |
 | 此前声明支持的其他 DSH 0.1 预发布版本 | 声明兼容；本次未逐一重新验证。 |
 
-截至 2026-10-28，npm 的 `latest` 指向 `0.2.1-rc.2`，`next` 指向 `0.2.1-rc.4`，`alpha` 指向 `0.2.2-alpha.2`。插件使用同一个包兼容这些发布通道。`engines.dsh` 与 DSH peer 范围保持一致，供新版插件管理器判断兼容性。新版已移除的 invariant 诊断模块不再作为插件依赖。
-
-新版的预算保存与重启保留通过配置接口验证，页面点击交互未在本次更新中重新实测。
+截至 2026-11-06，npm 的 `latest` 和 `next` 均指向 `0.2.2-rc.1`，`alpha` 指向 `0.2.2-alpha.3`。同一个插件包兼容这些发布通道。`engines.dsh` 与 DSH peer 范围保持一致，供插件管理器判断兼容性。[DSH 的 npm 版本列表](https://www.npmjs.com/package/%40deepseek-ai/dsh?activeTab=versions)
 
 DSH 0.1 peer 范围：`^0.1.1-rc.2 || ^0.1.2-rc.1 || ^0.1.5-rc.2 || ^0.1.7-alpha.2`。
 
-插件自身的 Node.js 范围：`^22.19.0 || >=24.0.0`；DSH `0.2.2-alpha.2` 要求 **Node.js >=24.9.0**，使用该宿主版本时需满足其更高要求。列表区分声明支持与实测记录，DSH 后续新版发布后会继续核验。
+插件的 Node.js 范围是 `^22.19.0 || >=24.0.0`。使用表中 DSH 0.2.2 系列版本时，请使用 **Node.js 24.9.0 或更高版本**。[DSH 0.2.2 发布说明](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.2-rc.1)
 
 ## 安装
 
@@ -105,7 +105,7 @@ Web 界面打开左侧 **插件 → dsh-handoff-compaction**，在插件详情�
 
 如果原配置使用 `retainRatio`，保存此面板会切换为固定的 `retainTokens`。配置文件中的 `modelPolicies` 按模型覆盖仍优先于通用预算。面板接入 DSH 原生权限和配置冲突检查；部署不允许配置写入时显示只读。
 
-可视化配置支持 DSH `0.1.7-rc.2`、`0.2.0-rc.1`、`0.2.0-rc.2`、`0.2.1-alpha.1`、`0.2.1-alpha.2`、`0.2.1-alpha.3`、`0.2.1-alpha.4`、`0.2.1-alpha.5`、`0.2.1-rc.1`、`0.2.1-rc.2`、`0.2.1-rc.3`、`0.2.1-rc.4`、`0.2.2-alpha.2`。Headless 或较早版本可在当前 profile 的 `cordis.patch.yml` 调整 `handoff-compaction` 条目的 `maxTokens`、`retainTokens`；默认 Web 文件为 `$DSH_HOME/profiles/web/cordis.patch.yml`，未设置 `DSH_HOME` 时使用 `~/.dsh`。
+可视化配置支持兼容表中从 `0.1.7-rc.2` 到 `0.2.2-rc.1` 逐一列出的版本。Headless 或较早版本可在当前 profile 的 `cordis.patch.yml` 调整 `handoff-compaction` 条目的 `maxTokens` 和 `retainTokens`。默认 Web 文件为 `$DSH_HOME/profiles/web/cordis.patch.yml`，未设置 `DSH_HOME` 时使用 `~/.dsh`。
 
 ### 其他包来源
 
@@ -115,7 +115,7 @@ Web 界面打开左侧 **插件 → dsh-handoff-compaction**，在插件详情�
 dsh plugin --profile web add dsh-handoff-compaction
 dsh plugin --profile web add github:knighthongyu/dsh-handoff-compaction
 dsh plugin --profile web add ./dsh-handoff-compaction
-dsh plugin --profile web add ./dsh-handoff-compaction-0.2.0-rc.9.tgz
+dsh plugin --profile web add ./dsh-handoff-compaction-0.2.0-rc.10.tgz
 ```
 
 ## 可搜索的历史，而不是被遗忘的历史
@@ -179,4 +179,4 @@ pnpm smoke:dsh
 pnpm verify:release
 ```
 
-`check:package` 会在临时目录创建真实 tarball，输出文件名、SHA-256 和文件列表，然后清理该文件。`verify:release` 组合类型检查/构建/测试、归档审计与隔离的 Web/headless 冒烟门禁。这些仅是贡献者验证；普通用户仍只需使用上面的标准单条 `dsh plugin --profile <profile> add <source>` 命令安装。
+`check:package` 会在临时目录创建 tarball，输出文件名、SHA-256 和文件列表，再清理该文件。`verify:release` 使用 DSH `0.2.2-rc.1` 做类型检查和构建，运行压缩、历史查询和预算热更新集成测试，检查打包内容，并在隔离的 Web 和 headless profile 中验证安装、启动和卸载。兼容性矩阵也会用其他选定版本运行 profile 冒烟检查。
